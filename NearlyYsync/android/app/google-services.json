@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1095901729333",
+    "project_id": "nearlyy225",
+    "storage_bucket": "nearlyy225.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1095901729333:android:e784989f1917f2044f977c",
+        "android_client_info": {
+          "package_name": "com.nearlyy.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2r48eYtWthHtE5SUIXtoWL9GGfz-fpLs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

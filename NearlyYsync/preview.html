@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NearlyYsync — Admin & Vendor Control Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#F7F5FF',
+              100: '#EAE5FF',
+              200: '#D5CDFF',
+              300: '#B8A8FF',
+              400: '#9475FF',
+              500: '#6C47FF',
+              600: '#5128E8',
+              700: '#421DC7',
+              800: '#3517A1',
+              900: '#29127E',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-800 antialiased selection:bg-[#EAE5FF] selection:text-[#5128E8]">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const INITIAL_SERVICES = [
+      {
+        id: 'mess-1',
+        name: 'Annapurna Executive & Student Mess',
+        category: 'mess',
+        locality: 'Lohegaon (Near Bus Stand)',
+        distance: '0.4 km away',
+        rating: 4.6,
+        reviewsCount: '1.2k',
+        priceDisplay: '₹2,000 / mo',
+        coverImage: 'https://images.unsplash.com/photo-1613292443284-8d10ef9383fe?w=800&auto=format&fit=crop&q=80',
+        dietType: 'Pure Veg',
+        todayMenu: {
+          lunch: 'Paneer Butter Masala + Phulkas + Rice',
+          dinner: 'Veg Dum Biryani + Raita'
+        }
+      },
+      {
+        id: 'mess-2',
+        name: 'Shree Ganesh Homestyle Bhojanalay',
+        category: 'mess',
+        locality: 'Porwal Road, Lohegaon',
+        distance: '0.8 km away',
+        rating: 4.8,
+        reviewsCount: '890',
+        priceDisplay: '₹1,800 / mo',
+        coverImage: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&auto=format&fit=crop&q=80',
+        dietType: 'Pure Veg',
+        todayMenu: {
+          lunch: 'Chole Masala + Phulkas + Jeera Rice',
+          dinner: 'Aloo Gobi + Dal Tadka'
+        }
+      },
+      {
+        id: 'laundry-1',
+        name: 'Royal Express Laundry & Steam Press',
+        category: 'laundry',
+        locality: 'Porwal Road, Lohegaon',
+        distance: '0.5 km away',
+        rating: 4.7,
+        reviewsCount: '540',
+        coverImage: 'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=800&auto=format&fit=crop&q=80',
+        priceDisplay: '₹80 / kg'
+      },
+      {
+        id: 'gym-1',
+        name: 'Iron Paradise Fitness Club',
+        category: 'gym',
+        locality: 'Porwal Road, Lohegaon',
+        distance: '0.6 km away',
+        rating: 4.9,
+        reviewsCount: '780',
+        coverImage: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&auto=format&fit=crop&q=80',
+        priceDisplay: '₹999 / mo'
+      },
+      {
+        id: 'flat-1',
+        name: 'Sunrise Luxury PG & Co-Living',
+        category: 'flats',
+        locality: 'Porwal Road, Lohegaon',
+        distance: '0.9 km away',
+        rating: 4.7,
+        reviewsCount: '842',
+        price: 6500,
+        deposit: 5000,
+        sharing: 'Double Sharing',
+        coverImage: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80'
+      }
+    ];
+
+    function AdminApp() {
+      const [services, setServices] = useState(INITIAL_SERVICES);
+      const [activeTab, setActiveTab] = useState('listings');
+      const [catFilter, setCatFilter] = useState('all');
+      const [bookings, setBookings] = useState([
+        { id: 'b-101', title: 'Trial Meal at Annapurna Mess', service: 'Mess & Tiffin', userName: 'Sahil Dehadray', userCollege: 'ADYPU', locality: 'Porwal Road', status: 'confirmed', time: '10 mins ago' },
+        { id: 'b-102', title: 'Doorstep Pickup by Royal Laundry', service: 'Laundry', userName: 'Aman Sharma', userCollege: 'VIT Pune', locality: 'Airforce Station', status: 'in_progress', time: '1 hour ago' }
+      ]);
+      const [showMenuModal, setShowMenuModal] = useState(null);
+      const [menuData, setMenuData] = useState({ lunch: '', dinner: '' });
+      const [toast, setToast] = useState('');
+
+      const showToast = (msg) => {
+        setToast(msg);
+        setTimeout(() => setToast(''), 3000);
+      };
+
+      const handleQuickMenu = (item) => {
+        setShowMenuModal(item);
+        setMenuData({
+          lunch: item.todayMenu?.lunch || '',
+          dinner: item.todayMenu?.dinner || ''
+        });
+      };
+
+      const saveMenu = () => {
+        if (!showMenuModal) return;
+        setServices(services.map(s => s.id === showMenuModal.id ? {
+          ...s,
+          todayMenu: { lunch: menuData.lunch, dinner: menuData.dinner }
+        } : s));
+        showToast(`Today's menu updated for ${showMenuModal.name}! ⚡`);
+        setShowMenuModal(null);
+      };
+
+      const filtered = services.filter(s => catFilter === 'all' || s.category === catFilter);
+
+      return (
+        <div className="min-h-screen flex flex-col font-sans">
+          {toast && (
+            <div className="fixed top-5 right-5 z-50 bg-[#5128E8] text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-2xl animate-bounce">
+              ⚡ {toast}
+            </div>
+          )}
+
+          {/* Header */}
+          <header className="bg-white border-b px-6 py-4 flex items-center justify-between shadow-xs sticky top-0 z-40">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#5128E8] text-white font-black text-sm flex items-center justify-center shadow-md">
+                NY
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h1 className="text-lg font-black text-slate-900">NearlyY<span className="text-[#5128E8]">sync</span></h1>
+                  <span className="text-[10px] bg-[#EAE5FF] text-[#5128E8] font-bold px-2 py-0.5 rounded-full uppercase">Vendor & Admin Hub</span>
+                </div>
+                <p className="text-xs text-slate-500">Real-Time Cloud Sync • Lohegaon, Pune</p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <span className="flex items-center space-x-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Firebase: Connected (nearlyy225) 🟢</span>
+              </span>
+            </div>
+          </header>
+
+          {/* Main Area */}
+          <main className="max-w-7xl w-full mx-auto p-6 space-y-6 flex-1">
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white p-4 rounded-3xl border shadow-xs">
+                <p className="text-xs font-bold text-slate-400 uppercase">Active Catalog Listings</p>
+                <h3 className="text-2xl font-black mt-1">{services.length}</h3>
+                <span className="text-[10px] text-emerald-600 font-bold">● Live on NearlyY App</span>
+              </div>
+              <div className="bg-white p-4 rounded-3xl border shadow-xs">
+                <p className="text-xs font-bold text-slate-400 uppercase">Customer Bookings</p>
+                <h3 className="text-2xl font-black mt-1 text-[#5128E8]">{bookings.length}</h3>
+                <span className="text-[10px] text-slate-500 font-bold">Incoming from residents</span>
+              </div>
+              <div className="bg-white p-4 rounded-3xl border shadow-xs">
+                <p className="text-xs font-bold text-slate-400 uppercase">Lohegaon Coverage</p>
+                <h3 className="text-2xl font-black mt-1">4 Areas</h3>
+                <span className="text-[10px] text-slate-500 font-bold">Porwal Rd, Airforce, Chowk</span>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex space-x-2 border-b pb-2">
+              <button 
+                onClick={()=>setActiveTab('listings')}
+                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all ${activeTab==='listings' ? 'bg-[#5128E8] text-white shadow-sm' : 'bg-white border text-slate-600'}`}
+              >
+                Services Catalog ({services.length})
+              </button>
+              <button 
+                onClick={()=>setActiveTab('bookings')}
+                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all ${activeTab==='bookings' ? 'bg-[#5128E8] text-white shadow-sm' : 'bg-white border text-slate-600'}`}
+              >
+                Incoming Bookings ({bookings.length})
+              </button>
+            </div>
+
+            {activeTab === 'listings' && (
+              <div className="space-y-4">
+                {/* Category Filters */}
+                <div className="flex space-x-2">
+                  {['all', 'mess', 'laundry', 'gym', 'flats'].map(c => (
+                    <button 
+                      key={c}
+                      onClick={()=>setCatFilter(c)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize transition-all ${catFilter===c ? 'bg-[#EAE5FF] text-[#5128E8] border border-[#5128E8]/30' : 'bg-white border text-slate-600'}`}
+                    >
+                      {c === 'all' ? 'All Services' : c}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {filtered.map(item => (
+                    <div key={item.id} className="bg-white rounded-3xl border shadow-xs overflow-hidden flex flex-col justify-between">
+                      <div>
+                        <div className="relative h-40 w-full overflow-hidden">
+                          <img src={item.coverImage} className="w-full h-full object-cover" />
+                          <span className="absolute top-3 left-3 bg-white px-2 py-0.5 rounded-full text-[10px] font-black uppercase text-[#5128E8]">
+                            {item.category}
+                          </span>
+                        </div>
+                        <div className="p-4 space-y-2">
+                          <h4 className="text-sm font-extrabold text-slate-900">{item.name}</h4>
+                          <p className="text-xs text-slate-500">📍 {item.locality}</p>
+                          {item.todayMenu && (
+                            <div className="bg-[#F7F5FF] p-2.5 rounded-2xl text-[11px] space-y-1">
+                              <p><span className="font-bold">Lunch:</span> {item.todayMenu.lunch}</p>
+                              <p><span className="font-bold">Dinner:</span> {item.todayMenu.dinner}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="p-4 pt-0 border-t flex justify-between items-center mt-2">
+                        {item.category === 'mess' && (
+                          <button 
+                            onClick={()=>handleQuickMenu(item)}
+                            className="text-xs font-extrabold text-[#5128E8] bg-[#EAE5FF] hover:bg-[#5128E8] hover:text-white px-3 py-1.5 rounded-xl transition-all"
+                          >
+                            🍱 Edit Today's Menu
+                          </button>
+                        )}
+                        <span className="text-[10px] text-emerald-600 font-bold ml-auto">● Synced with app</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'bookings' && (
+              <div className="space-y-3">
+                {bookings.map(b => (
+                  <div key={b.id} className="bg-white p-4 rounded-3xl border flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="text-sm font-extrabold">{b.title}</h4>
+                        <span className="text-[10px] bg-slate-100 font-bold px-2 py-0.5 rounded-full">{b.service}</span>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-0.5">
+                        Customer: <span className="font-bold">{b.userName}</span> • {b.userCollege} • {b.locality}
+                      </p>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full uppercase">
+                      {b.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </main>
+
+          {/* Today's Menu Modal */}
+          {showMenuModal && (
+            <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-3xl p-6 max-w-md w-full space-y-4">
+                <div className="flex justify-between items-center border-b pb-2">
+                  <h3 className="font-black text-sm">Update Today's Menu ({showMenuModal.name})</h3>
+                  <button onClick={()=>setShowMenuModal(null)} className="font-bold text-slate-400">✕</button>
+                </div>
+                <div className="space-y-2 text-xs font-semibold">
+                  <label>Lunch Special</label>
+                  <input 
+                    type="text" 
+                    value={menuData.lunch} 
+                    onChange={(e)=>setMenuData({...menuData, lunch: e.target.value})}
+                    className="w-full p-2.5 rounded-xl border"
+                  />
+                  <label>Dinner Special</label>
+                  <input 
+                    type="text" 
+                    value={menuData.dinner} 
+                    onChange={(e)=>setMenuData({...menuData, dinner: e.target.value})}
+                    className="w-full p-2.5 rounded-xl border"
+                  />
+                  <button onClick={saveMenu} className="w-full py-3 rounded-xl bg-[#5128E8] text-white font-bold mt-2">
+                    Sync Live to NearlyY
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<AdminApp />);
+  </script>
+</body>
+</html>
+
