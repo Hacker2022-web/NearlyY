@@ -7,11 +7,11 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
-  signInWithRedirect, 
-  getRedirectResult, 
+  signInWithCredential,
   signOut, 
   onAuthStateChanged 
 } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
 import { CATEGORY_DATA } from './data/mockData';
 
 // ponytail: single env-backed config with robust fallback
@@ -84,10 +84,25 @@ export async function seedFirestore() {
 // Real-time user profile sync to Firestore
 export async function syncUserProfile(profile) {
   try {
-    localStorage.setItem('nearlyy_user', JSON.stringify(profile));
-    const userId = profile.email ? profile.email.replace(/[^a-zA-Z0-9_]/g, '_') : 'current_user';
+    const existingStr = localStorage.getItem('nearlyy_user');
+    let merged = { ...profile };
+    if (existingStr) {
+      try {
+        const existing = JSON.parse(existingStr);
+        merged = {
+          interests: ['Mess & Tiffin', 'Flats & PG', 'Gym & Fitness', 'Laundry & Dry Cleaning'],
+          ...existing,
+          ...profile
+        };
+      } catch (e) {}
+    }
+    if (!Array.isArray(merged.interests) || merged.interests.length === 0) {
+      merged.interests = ['Mess & Tiffin', 'Flats & PG', 'Gym & Fitness', 'Laundry & Dry Cleaning'];
+    }
+    localStorage.setItem('nearlyy_user', JSON.stringify(merged));
+    const userId = merged.email ? merged.email.replace(/[^a-zA-Z0-9_]/g, '_') : 'current_user';
     await setDoc(doc(db, 'users', userId), {
-      ...profile,
+      ...merged,
       syncedAt: new Date().toISOString()
     }, { merge: true });
     return { success: true };
@@ -98,33 +113,87 @@ export async function syncUserProfile(profile) {
 }
 
 // Real-time Google Authentication via Firebase Auth
+// Strictly platform-split: Native Credential Manager on APK/iOS, Popup only on Web
 export async function signInWithGoogle() {
+  const isNative = Capacitor.isNativePlatform();
+  const platform = Capacitor.getPlatform();
+  console.log(`[Auth] platform=${platform}, path=${isNative ? 'native' : 'web'}, isNative=${isNative}`);
+
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
+    let user;
+
+    if (isNative) {
+      // ── STRICT NATIVE PATH: NEVER calls popup or redirect ──
+      const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+      console.log("[Auth] Triggering native Google Sign-In via Credential Manager...");
+      const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
+
+      const idToken = result.credential?.idToken;
+      if (!idToken) {
+        throw new Error('Native Google Sign-In returned no ID token. Please verify Google Play Services.');
+      }
+
+      console.log("[Auth] Native ID token received, signing into Firebase JS SDK with credential...");
+      const credential = GoogleAuthProvider.credential(idToken, result.credential.accessToken);
+      const fbResult = await signInWithCredential(auth, credential);
+      user = fbResult.user;
+    } else {
+      // ── STRICT WEB PATH: Desktop / mobile browser only ──
+      console.log("[Auth] Triggering standard Web signInWithPopup...");
+      const result = await signInWithPopup(auth, googleProvider);
+      user = result.user;
+    }
+
     const profile = {
-      uid: user.uid,
-      name: user.displayName || 'Sahil Dehadray',
-      email: user.email || 'sahil.dehadray@adypu.edu.in',
-      avatar: user.photoURL || '',
+      uid: user?.uid || `user_${Date.now()}`,
+      name: user?.displayName || 'Student',
+      email: user?.email || '',
+      avatar: user?.photoURL || user?.photoUrl || '',
       provider: 'google',
       lastLogin: new Date().toISOString()
     };
     await syncUserProfile(profile);
+    console.log("[Auth] User profile synchronized successfully for:", profile.email);
     return { success: true, user: profile };
   } catch (error) {
-    console.error("Firebase Google Auth Error:", error);
+    console.error(`[Auth] Sign-in error on platform=${platform}:`, error?.code, error?.message);
     return { 
       success: false, 
-      code: error.code || 'auth/unknown', 
-      message: error.message || 'Google sign in failed' 
+      code: error?.code || 'auth/unknown', 
+      message: error?.message || 'Google sign-in failed' 
     };
   }
 }
 
-// Sign out from Firebase Auth
+// Real-time Auth State Observer
+export function listenToAuthState(callback) {
+  return onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      const profile = {
+        uid: user.uid,
+        name: user.displayName || 'Student',
+        email: user.email || '',
+        avatar: user.photoURL || '',
+        provider: 'google',
+        lastLogin: new Date().toISOString()
+      };
+      await syncUserProfile(profile);
+      callback(profile);
+    }
+  });
+}
+
+// Sign out from Firebase Auth (and native layer if on Capacitor)
 export async function logoutUser() {
   try {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+        await FirebaseAuthentication.signOut();
+      } catch (e) {
+        // fallthrough to signOut below
+      }
+    }
     await signOut(auth);
     localStorage.removeItem('nearlyy_user');
     localStorage.removeItem('nearlyy_onboarded');

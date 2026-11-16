@@ -12,7 +12,20 @@
           "package_name": "com.nearlyy.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1095901729333-b7e3gdre93p3kltbicinc69tnqsvhj6n.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nearlyy.app",
+            "certificate_hash": "fcab8412778817c1b1bd62bf0cf9f3ef811f371b"
+          }
+        },
+        {
+          "client_id": "1095901729333-4j9pgrmvmubd70i4qo3vgfbiilra8us4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD2r48eYtWthHtE5SUIXtoWL9GGfz-fpLs"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1095901729333-4j9pgrmvmubd70i4qo3vgfbiilra8us4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

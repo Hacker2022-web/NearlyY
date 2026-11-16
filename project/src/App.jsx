@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import gsap from 'gsap';
 import { 
   UtensilsCrossed, Shirt, Dumbbell, Home, ArrowRight, Bell, Search, Star, 
   Bookmark, Phone, MessageCircle, Check, CheckCircle2, MapPin, Calendar, 
@@ -14,8 +15,33 @@ import {
 import { 
   subscribeToServices, seedFirestore, syncUserProfile, 
   recordBooking, recordInquiry, subscribeToBookings,
-  signInWithGoogle, logoutUser 
+  signInWithGoogle, logoutUser, listenToAuthState
 } from './firebase';
+
+// Curated Lohegaon Campus & Living Slides for Front Page
+const HERO_SLIDES = [
+  {
+    image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&auto=format&fit=crop&q=80',
+    title: 'Flats & Student PGs',
+    badge: 'ADYPU & Pune',
+    location: 'Lohegaon, Pune',
+    tagline: 'Verified spaces with zero brokerage'
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1613292443284-8d10ef9383fe?w=800&auto=format&fit=crop&q=80',
+    title: 'Hygienic Mess & Tiffins',
+    badge: 'Unlimited Thalis',
+    location: 'DY Patil Road, Lohegaon',
+    tagline: 'Home-style nutritious daily meals'
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&auto=format&fit=crop&q=80',
+    title: 'Student Gyms & Express Laundry',
+    badge: 'Fast Turnaround',
+    location: 'Airforce Campus, Lohegaon',
+    tagline: 'Stay active with 24-hr laundry pickup'
+  }
+];
 
 // Helper: Extract all photos for a listing
 const getItemImages = (item) => {
@@ -68,8 +94,28 @@ export default function App() {
 
   // User Profile State
   const [userProfile, setUserProfile] = useState(() => {
-    const saved = localStorage.getItem('nearlyy_user');
-    return saved ? JSON.parse(saved) : {
+    try {
+      const saved = localStorage.getItem('nearlyy_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          name: parsed.name || 'Sahil Dehadray',
+          email: parsed.email || 'sahil.dehadray@adypu.edu.in',
+          avatar: parsed.avatar || '',
+          bio: parsed.bio || 'SST \'26 • Living in Lohegaon',
+          college: parsed.college || 'ADYPU',
+          collegeFull: parsed.collegeFull || 'Ajeenkya DY Patil University, Lohegaon',
+          livingType: parsed.livingType || 'PG',
+          subLocality: parsed.subLocality || 'Porwal Road, Lohegaon',
+          interests: Array.isArray(parsed.interests) && parsed.interests.length > 0 
+            ? parsed.interests 
+            : ['Mess & Tiffin', 'Flats & PG', 'Gym & Fitness', 'Laundry & Dry Cleaning']
+        };
+      }
+    } catch (e) {
+      console.warn("Failed to load saved user profile:", e);
+    }
+    return {
       name: 'Sahil Dehadray',
       email: 'sahil.dehadray@adypu.edu.in',
       avatar: '',
@@ -109,7 +155,19 @@ export default function App() {
     phone: '919876543210'
   });
 
-  // Subscribe to Firebase Firestore real-time updates for services & bookings
+  // Front page interactive carousel slide state
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
+
+  // Auto-rotate front page images every 3.5 seconds
+  useEffect(() => {
+    if (onboardingStep !== 1 || isOnboarded) return;
+    const interval = setInterval(() => {
+      setHeroSlideIndex((prev) => (prev + 1) % HERO_SLIDES.length);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [onboardingStep, isOnboarded]);
+
+  // Subscribe to Firebase Firestore real-time updates & Auth listener
   useEffect(() => {
     const unsubServices = subscribeToServices((data) => {
       setServicesData(data);
@@ -120,11 +178,67 @@ export default function App() {
       setUserBookings(bookings);
     });
 
+    const unsubAuth = listenToAuthState((googleUser) => {
+      if (googleUser) {
+        setUserProfile(prev => ({
+          ...prev,
+          name: googleUser.name || prev.name,
+          email: googleUser.email || prev.email,
+          avatar: googleUser.avatar || prev.avatar,
+          uid: googleUser.uid,
+          interests: Array.isArray(prev?.interests) && prev.interests.length > 0
+            ? prev.interests
+            : ['Mess & Tiffin', 'Flats & PG', 'Gym & Fitness', 'Laundry & Dry Cleaning']
+        }));
+      }
+    });
+
     return () => {
       unsubServices && unsubServices();
       unsubBookings && unsubBookings();
+      unsubAuth && unsubAuth();
     };
   }, [userProfile.email]);
+
+  // GSAP: Animate onboarding step change
+  useEffect(() => {
+    if (!isOnboarded) {
+      gsap.fromTo('.onboarding-step-content',
+        { y: 16, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.35, ease: 'power2.out' }
+      );
+    }
+  }, [onboardingStep, isOnboarded]);
+
+  // GSAP: Animate service cards on category change
+  useEffect(() => {
+    if (currentScreen === 'home') {
+      gsap.fromTo('.service-card',
+        { y: 16, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.3, stagger: 0.04, ease: 'power2.out' }
+      );
+    }
+  }, [activeCategory, currentScreen]);
+
+  // GSAP: Animate detail view on open
+  useEffect(() => {
+    if (currentScreen === 'detail') {
+      gsap.fromTo('.detail-view-container',
+        { y: 24, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.35, ease: 'power3.out' }
+      );
+    }
+  }, [currentScreen]);
+
+  // GSAP: Animate toast alerts
+  useEffect(() => {
+    if (toastMessage) {
+      gsap.fromTo('.toast-notification-pill',
+        { y: -20, scale: 0.9, opacity: 0 },
+        { y: 0, scale: 1, opacity: 1, duration: 0.28, ease: 'back.out(1.6)' }
+      );
+    }
+  }, [toastMessage]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -163,30 +277,57 @@ export default function App() {
     showToast('Saved & Synced to Firebase!');
   };
 
+  const WHATSAPP_COMMUNITY_URL = 'https://chat.whatsapp.com/JZdcBHTtdGm3jSxSMyVwUh';
+
+  const openWhatsAppCommunity = () => {
+    const url = WHATSAPP_COMMUNITY_URL;
+    try {
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.warn("Direct link click fallback to window.open", err);
+      window.open(url, '_blank') || (window.location.href = url);
+    }
+  };
+
   const handleOpenChat = (source = 'Bottom Navigation') => {
-    setShowChatComingSoonModal(true);
     // Log user chat inquiry to Firestore
     recordInquiry({
-      userEmail: userProfile.email,
-      userName: userProfile.name,
+      userEmail: userProfile?.email || '',
+      userName: userProfile?.name || '',
       source,
-      note: 'User clicked chat / inquiry'
+      note: 'User clicked chat / WhatsApp group: https://chat.whatsapp.com/JZdcBHTtdGm3jSxSMyVwUh'
     });
+    // Open the official WhatsApp Community directly
+    openWhatsAppCommunity();
+    // Also show modal so user can re-access or see details
+    setShowChatComingSoonModal(true);
+    showToast('Joining NearlyY Student WhatsApp Community... 🚀');
   };
 
   const handleNotifyChat = async () => {
     setIsNotifiedForChat(true);
     await recordInquiry({
-      userEmail: userProfile.email,
-      userName: userProfile.name,
+      userEmail: userProfile?.email || '',
+      userName: userProfile?.name || '',
       source: 'Chat Coming Soon Modal',
       wantsEarlyAccess: true
     });
-    showToast('You will be notified as soon as in-app chat launches!');
+    showToast('Saved! Connecting to WhatsApp Community...');
+    openWhatsAppCommunity();
   };
 
   const handleWhatsAppChat = (shopName, serviceType, phone) => {
-    const targetPhone = phone ? phone.replace(/\D/g, '') : '919876543210';
+    if (!phone || phone === '919876543210' || String(shopName).includes('NearlyY') || String(shopName).includes('Concierge')) {
+      openWhatsAppCommunity();
+      return;
+    }
+    const targetPhone = phone.replace(/\D/g, '');
     const msg = encodeURIComponent(`Hi ${shopName}! I found your listing on NearlyY (${LOCALITY}). I want to inquire about ${serviceType}.`);
     window.open(`https://wa.me/${targetPhone}?text=${msg}`, '_blank');
   };
@@ -210,10 +351,11 @@ export default function App() {
 
   const toggleInterest = (interestName) => {
     setUserProfile(prev => {
-      const exists = prev.interests.includes(interestName);
+      const currentInterests = Array.isArray(prev?.interests) ? prev.interests : [];
+      const exists = currentInterests.includes(interestName);
       const updated = exists 
-        ? prev.interests.filter(i => i !== interestName)
-        : [...prev.interests, interestName];
+        ? currentInterests.filter(i => i !== interestName)
+        : [...currentInterests, interestName];
       return { ...prev, interests: updated };
     });
   };
@@ -221,99 +363,98 @@ export default function App() {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      const res = await signInWithGoogle();
-      if (res.success && res.user) {
+      // 45-second safety timeout so user has plenty of time to select Google account in system dialog
+      const authPromise = signInWithGoogle();
+      const timeoutPromise = new Promise((resolve) => 
+        setTimeout(() => resolve({ timeout: true }), 45000)
+      );
+      const res = await Promise.race([authPromise, timeoutPromise]);
+
+      if (res && res.success && res.user) {
         setUserProfile(prev => ({
           ...prev,
           name: res.user.name || prev.name,
           email: res.user.email || prev.email,
           avatar: res.user.avatar || prev.avatar,
-          uid: res.user.uid
+          uid: res.user.uid,
+          interests: Array.isArray(prev?.interests) && prev.interests.length > 0 
+            ? prev.interests 
+            : ['Mess & Tiffin', 'Flats & PG', 'Gym & Fitness', 'Laundry & Dry Cleaning']
         }));
-        showToast(`Signed in as ${res.user.name.split(' ')[0]} via Google! 🎉`);
+        const firstName = (res.user.name || 'Student').split(' ')[0];
+        showToast(`Signed in as ${firstName} via Google! 🎉`);
         setOnboardingStep(3);
+      } else if (res && res.timeout) {
+        showToast('Sign-in took too long. You can tap Quick Student Entry below.');
       } else {
-        if (res.code === 'auth/popup-closed-by-user') {
-          showToast('Google popup closed. Tap again to retry.');
-        } else if (res.code === 'auth/unauthorized-domain') {
-          showToast('Testing on IP? Open localhost:3000 for Google Auth. Continuing with setup...');
-          setUserProfile(prev => ({
-            ...prev,
-            name: prev.name || 'Sahil Dehadray',
-            email: prev.email || 'sahil.dehadray@adypu.edu.in'
-          }));
-          setOnboardingStep(3);
+        if (res?.code === 'auth/popup-closed-by-user' || String(res?.message || '').includes('cancel')) {
+          showToast('Sign-in cancelled. Tap to try again.');
         } else {
-          showToast(res.message || 'Google sign-in notice. Continuing...');
-          setUserProfile(prev => ({
-            ...prev,
-            name: prev.name || 'Sahil Dehadray',
-            email: prev.email || 'sahil.dehadray@adypu.edu.in'
-          }));
-          setOnboardingStep(3);
+          showToast(res?.message || 'Unable to sign in. Try Quick Entry below.');
         }
       }
     } catch (err) {
       console.error("Google sign-in error:", err);
-      showToast('Continuing with profile setup...');
-      setOnboardingStep(3);
+      showToast('Sign in error. You can use Quick Student Entry below.');
     } finally {
       setIsGoogleLoading(false);
     }
   };
 
   const getFilteredItems = () => {
-    const list = servicesData[activeCategory] || [];
+    const list = Array.isArray(servicesData?.[activeCategory]) ? servicesData[activeCategory] : [];
     return list.filter((item) => {
-      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            item.locality.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!item) return false;
+      const itemName = String(item.name || '').toLowerCase();
+      const itemLocality = String(item.locality || '').toLowerCase();
+      const q = String(searchQuery || '').toLowerCase();
+      const matchesSearch = itemName.includes(q) || itemLocality.includes(q);
       if (!matchesSearch) return false;
+
       if (filterTag === 'All') return true;
-      if (activeCategory === 'mess' && filterTag === 'Pure Veg') return item.dietType === 'Pure Veg';
-      if (activeCategory === 'mess' && filterTag === 'Non-Veg') return item.dietType.includes('Non-Veg');
-      if (activeCategory === 'laundry' && filterTag === 'Express 24h') return item.badge && item.badge.includes('24h');
-      if (activeCategory === 'gym' && filterTag === 'AC') return item.facilities?.some(f => f.name.includes('Air'));
-      if (activeCategory === 'flats' && filterTag === 'Single') return item.sharing.includes('Single');
-      if (activeCategory === 'flats' && filterTag === 'Double') return item.sharing.includes('Double');
+
+      const dietType = String(item.dietType || '');
+      const badge = String(item.badge || '');
+      const sharing = String(item.sharing || '');
+
+      if (activeCategory === 'mess' && filterTag === 'Pure Veg') return dietType === 'Pure Veg';
+      if (activeCategory === 'mess' && filterTag === 'Non-Veg') return dietType.includes('Non-Veg');
+      if (activeCategory === 'laundry' && filterTag === 'Express 24h') return badge.includes('24h');
+      if (activeCategory === 'gym' && filterTag === 'AC') {
+        return Array.isArray(item.facilities) && item.facilities.some(f => {
+          const fName = typeof f === 'string' ? f : String(f?.name || '');
+          return fName.includes('Air') || fName.includes('AC');
+        });
+      }
+      if (activeCategory === 'flats' && filterTag === 'Single') return sharing.includes('Single');
+      if (activeCategory === 'flats' && filterTag === 'Double') return sharing.includes('Double');
       return true;
     });
   };
 
-  const filteredColleges = PUNE_COLLEGES.filter(c => 
-    c.name.toLowerCase().includes(collegeSearch.toLowerCase()) ||
-    c.full.toLowerCase().includes(collegeSearch.toLowerCase())
+  const filteredColleges = (Array.isArray(PUNE_COLLEGES) ? PUNE_COLLEGES : []).filter(c => 
+    String(c?.name || '').toLowerCase().includes(String(collegeSearch || '').toLowerCase()) ||
+    String(c?.full || '').toLowerCase().includes(String(collegeSearch || '').toLowerCase())
   );
 
   return (
-    <div className="min-h-screen bg-[#F7F5FF] flex flex-col items-center justify-center p-0 sm:p-4 font-sans antialiased text-slate-800 selection:bg-[#EAE5FF] selection:text-[#5128E8]">
+    <div className="w-full h-full min-h-[100dvh] bg-[#F7F5FF] flex flex-col items-center justify-center p-0 sm:p-2 md:p-4 font-sans antialiased text-slate-800 selection:bg-[#EAE5FF] selection:text-[#5128E8]">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-4 z-[999] bg-[#5128E8] text-white px-4 py-2.5 rounded-full text-xs font-bold shadow-xl animate-fade-in flex items-center space-x-2 border border-white/20">
+        <div className="fixed top-4 z-[999] bg-[#5128E8] text-white px-4 py-2.5 rounded-full text-xs font-bold shadow-xl toast-notification-pill flex items-center space-x-2 border border-white/20">
           <Zap className="w-3.5 h-3.5 text-amber-300" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Mobile Frame Container */}
-      <div className="w-full max-w-[430px] min-h-[900px] h-full sm:h-[890px] bg-white sm:rounded-[44px] shadow-[0_20px_60px_rgba(81,40,232,0.12)] flex flex-col overflow-hidden relative border-0 sm:border-[8px] sm:border-slate-850">
+      {/* App Container: Auto-scales cleanly to any phone or tablet aspect ratio */}
+      <div className="w-full h-[100dvh] sm:h-[94vh] sm:max-h-[920px] max-w-full sm:max-w-[480px] md:max-w-[540px] bg-white sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden relative border-0 sm:border sm:border-slate-200/80">
         
-        {/* iOS Status Bar */}
-        <div className="w-full h-11 pt-2 px-7 flex items-center justify-between text-xs font-semibold text-slate-800 bg-white/90 backdrop-blur-md sticky top-0 z-50 shrink-0">
-          <span>9:41</span>
-          <div className="w-20 h-4 bg-slate-900 rounded-full mx-auto -mt-1 hidden sm:block"></div>
-          <div className="flex items-center space-x-1.5">
-            <span className="text-[10px] font-bold text-slate-700">5G</span>
-            <div className="w-5 h-2.5 border border-slate-700 rounded-sm p-0.5 flex items-center">
-              <div className="w-full h-full bg-slate-800 rounded-2xs"></div>
-            </div>
-          </div>
-        </div>
-
         {/* ============================================================ */}
         {/* ONBOARDING FLOW (7 STEPS)                                    */}
         {/* ============================================================ */}
         {!isOnboarded ? (
-          <div className="flex-1 flex flex-col justify-between p-6 overflow-y-auto no-scrollbar bg-[#F7F5FF]">
+          <div className="flex-1 flex flex-col justify-between p-5 pt-[max(env(safe-area-inset-top,0px),1.25rem)] pb-[max(env(safe-area-inset-bottom,0px),1.25rem)] overflow-y-auto no-scrollbar bg-[#F7F5FF] onboarding-step-content">
             
             {/* STEP 1: WELCOME SCREEN */}
             {onboardingStep === 1 && (
@@ -343,28 +484,74 @@ export default function App() {
                   </p>
                 </div>
 
-                <div className="relative rounded-3xl overflow-hidden shadow-[0_12px_32px_rgba(81,40,232,0.12)] h-60 w-full border border-white">
-                  <img 
-                    src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&auto=format&fit=crop&q=80" 
-                    alt="Campus & Apartments in Lohegaon" 
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent"></div>
-                  
-                  <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-bold text-slate-900 shadow-md flex items-center space-x-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-[#5128E8]" />
-                    <span>Lohegaon, Pune</span>
-                  </div>
+                {/* Auto-Rotating Hero Carousel */}
+                <div className="relative rounded-3xl overflow-hidden shadow-[0_12px_32px_rgba(81,40,232,0.15)] h-64 w-full border border-white group select-none">
+                  {HERO_SLIDES.map((slide, idx) => (
+                    <div 
+                      key={slide.title}
+                      className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${idx === heroSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
+                    >
+                      <img 
+                        src={slide.image} 
+                        alt={slide.title} 
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-900/30 to-transparent"></div>
+                      
+                      <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
+                        <div className="space-y-1 text-left">
+                          <div className="bg-white/95 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-bold text-slate-900 shadow-md inline-flex items-center space-x-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-[#5128E8]" />
+                            <span>{slide.location}</span>
+                          </div>
+                          <h3 className="text-white text-base font-extrabold leading-tight drop-shadow-md">{slide.title}</h3>
+                          <p className="text-white/80 text-[11px] font-medium drop-shadow-sm">{slide.tagline}</p>
+                        </div>
 
-                  <div className="absolute bottom-4 right-4 bg-[#5128E8] text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-md">
-                    ADYPU & Pune
-                  </div>
+                        <div className="bg-[#5128E8] text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-md shrink-0">
+                          {slide.badge}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Left / Right Tap Controls */}
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setHeroSlideIndex((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+                    }}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/40 text-white backdrop-blur-xs flex items-center justify-center opacity-70 hover:opacity-100 active:scale-90 transition-all"
+                    aria-label="Previous slide"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setHeroSlideIndex((prev) => (prev + 1) % HERO_SLIDES.length);
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/40 text-white backdrop-blur-xs flex items-center justify-center opacity-70 hover:opacity-100 active:scale-90 transition-all"
+                    aria-label="Next slide"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
 
-                <div className="flex justify-center items-center space-x-1.5 py-1">
-                  <span className="w-6 h-2 bg-[#5128E8] rounded-full transition-all"></span>
-                  <span className="w-2 h-2 bg-[#EAE5FF] border border-[#5128E8]/30 rounded-full"></span>
-                  <span className="w-2 h-2 bg-[#EAE5FF] border border-[#5128E8]/30 rounded-full"></span>
+                {/* Interactive Carousel Indicator Dots */}
+                <div className="flex justify-center items-center space-x-2 py-1">
+                  {HERO_SLIDES.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setHeroSlideIndex(idx)}
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        idx === heroSlideIndex 
+                          ? 'w-7 bg-[#5128E8] shadow-xs' 
+                          : 'w-2 bg-[#EAE5FF] hover:bg-[#5128E8]/40 border border-[#5128E8]/20 cursor-pointer'
+                      }`}
+                      aria-label={`Go to slide ${idx + 1}`}
+                    />
+                  ))}
                 </div>
 
                 <button 
@@ -406,7 +593,7 @@ export default function App() {
                     {isGoogleLoading ? (
                       <>
                         <RotateCw className="w-5 h-5 text-[#5128E8] animate-spin" />
-                        <span>Signing in with Google...</span>
+                        <span>Connecting to Google...</span>
                       </>
                     ) : (
                       <>
@@ -419,6 +606,23 @@ export default function App() {
                         <span>Continue with Google</span>
                       </>
                     )}
+                  </button>
+
+                  <div className="flex items-center space-x-2 my-2">
+                    <div className="flex-1 h-px bg-slate-200"></div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">or</span>
+                    <div className="flex-1 h-px bg-slate-200"></div>
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      showToast('Welcome to NearlyY Lohegaon!');
+                      setOnboardingStep(3);
+                    }}
+                    className="w-full py-3.5 px-4 rounded-2xl bg-[#EAE5FF] text-[#5128E8] font-bold text-xs flex items-center justify-center space-x-2 hover:bg-[#5128E8] hover:text-white transition-all active:scale-98"
+                  >
+                    <GraduationCap className="w-4 h-4" />
+                    <span>Quick Student Entry (ADYPU / Pune)</span>
                   </button>
                 </div>
 
@@ -467,7 +671,7 @@ export default function App() {
                     </span>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-4 detail-view-container">
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-700">Full Name</label>
                       <input 
@@ -704,7 +908,7 @@ export default function App() {
 
                   <div className="grid grid-cols-2 gap-3 pt-5">
                     {CORE_SERVICES.map((item) => {
-                      const selected = userProfile.interests.includes(item.id);
+                      const selected = Array.isArray(userProfile?.interests) && userProfile.interests.includes(item.id);
                       return (
                         <div 
                           key={item.id}
@@ -781,7 +985,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4 detail-view-container">
                   <div className="h-10 w-full opacity-35 flex items-end justify-center space-x-1.5">
                     <div className="w-4 h-6 bg-[#5128E8] rounded-t-sm"></div>
                     <div className="w-6 h-9 bg-[#5128E8] rounded-t-sm"></div>
@@ -807,7 +1011,7 @@ export default function App() {
           /* ============================================================ */
           /* MAIN APPLICATION DASHBOARD (When User is Logged In)          */
           /* ============================================================ */
-          <div className="flex-1 overflow-y-auto no-scrollbar pb-20 bg-[#F7F5FF]">
+          <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(5rem+env(safe-area-inset-bottom,0px))] bg-[#F7F5FF]">
             
             {/* SCREEN 1: HOME DASHBOARD */}
             {currentScreen === 'home' && (
@@ -846,25 +1050,6 @@ export default function App() {
                       <span className="w-2 h-2 rounded-full bg-emerald-500 absolute top-2 right-2 border-2 border-white"></span>
                     </button>
                   </div>
-                </div>
-
-                {/* Live Firebase Sync Status Bar */}
-                <div className="flex items-center justify-between bg-white px-3.5 py-2 rounded-2xl border border-slate-100 shadow-xs text-xs">
-                  <div className="flex items-center space-x-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                    <span className="font-bold text-slate-800 text-[11px]">{firebaseStatus}</span>
-                  </div>
-                  <button 
-                    onClick={async () => {
-                      await seedFirestore();
-                      await syncUserProfile(userProfile);
-                      showToast('Firebase Real-Time Sync Complete! ⚡');
-                    }}
-                    className="text-[10px] font-extrabold text-[#5128E8] bg-[#EAE5FF] px-2.5 py-1 rounded-full hover:bg-[#5128E8] hover:text-white transition-all flex items-center space-x-1"
-                  >
-                    <RotateCw className="w-3 h-3" />
-                    <span>Sync Now</span>
-                  </button>
                 </div>
 
                 {/* Hero Banner */}
@@ -1054,7 +1239,7 @@ export default function App() {
                       <div 
                         key={item.id}
                         onClick={() => openDetail(item)}
-                        className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all cursor-pointer flex space-x-3"
+                        className="service-card p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all cursor-pointer flex space-x-3"
                       >
                         <div className="relative w-24 h-24 rounded-xl overflow-hidden shrink-0 bg-slate-100">
                           <img src={itemImages[0] || item.coverImage} alt={item.name} className="w-full h-full object-cover" />
@@ -1099,7 +1284,7 @@ export default function App() {
               const activeImg = itemImages[activeImageIndex] || selectedItem.coverImage;
 
               return (
-                <div className="space-y-4">
+                <div className="space-y-4 detail-view-container">
                   {/* Hero Photo Carousel & Controls */}
                   <div className="relative h-64 w-full bg-slate-950 overflow-hidden">
                     <img 
@@ -1215,6 +1400,42 @@ export default function App() {
                       >
                         Book a Trial Meal →
                       </button>
+
+                      {/* Real-time Today's Menu from NearlyYsync */}
+                      {selectedItem.todayMenu && (
+                        <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-200/90 space-y-2.5 shadow-xs">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-1.5 text-amber-900 font-extrabold text-xs">
+                              <UtensilsCrossed className="w-4 h-4 text-amber-600" />
+                              <span>Today's Special Menu</span>
+                            </div>
+                            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center space-x-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              <span>Live Synced</span>
+                            </span>
+                          </div>
+                          
+                          <div className="space-y-2 text-xs">
+                            {selectedItem.todayMenu.lunch && (
+                              <div className="bg-white/95 p-2.5 rounded-xl border border-amber-100 shadow-xs flex items-start space-x-2.5">
+                                <span className="text-[10px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-black uppercase tracking-wider shrink-0 mt-0.5">Lunch</span>
+                                <span className="font-semibold text-slate-800 leading-tight">
+                                  {typeof selectedItem.todayMenu.lunch === 'object' ? selectedItem.todayMenu.lunch.name : selectedItem.todayMenu.lunch}
+                                </span>
+                              </div>
+                            )}
+                            {selectedItem.todayMenu.dinner && (
+                              <div className="bg-white/95 p-2.5 rounded-xl border border-amber-100 shadow-xs flex items-start space-x-2.5">
+                                <span className="text-[10px] bg-indigo-100 text-indigo-900 px-2 py-0.5 rounded font-black uppercase tracking-wider shrink-0 mt-0.5">Dinner</span>
+                                <span className="font-semibold text-slate-800 leading-tight">
+                                  {typeof selectedItem.todayMenu.dinner === 'object' ? selectedItem.todayMenu.dinner.name : selectedItem.todayMenu.dinner}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       <h3 className="text-sm font-bold text-slate-900">Pricing Matrix</h3>
                       <div className="grid grid-cols-3 gap-2">
                         {selectedItem.pricing?.map((tier, idx) => (
@@ -1420,7 +1641,7 @@ export default function App() {
                     <button onClick={() => setShowEditProfileModal(true)} className="text-[11px] font-bold text-[#5128E8]">Edit</button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {userProfile.interests.map((int) => (
+                    {(Array.isArray(userProfile?.interests) ? userProfile.interests : []).map((int) => (
                       <span key={int} className="bg-[#EAE5FF] text-[#5128E8] border border-[#5128E8]/20 text-xs font-bold px-3 py-1 rounded-full">
                         {int}
                       </span>
@@ -1428,23 +1649,8 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Settings & Firebase Sync Menu */}
+                {/* Settings Menu */}
                 <div className="bg-white rounded-3xl border border-slate-100 divide-y divide-slate-100 shadow-xs text-xs font-medium overflow-hidden">
-                  <button 
-                    onClick={async () => { 
-                      await seedFirestore(); 
-                      await syncUserProfile(userProfile);
-                      showToast('⚡ All Data Synced with Firebase!'); 
-                    }} 
-                    className="w-full p-4 flex justify-between items-center text-[#5128E8] font-bold hover:bg-[#F7F5FF]"
-                  >
-                    <div className="flex items-center space-x-2.5">
-                      <Zap className="w-4 h-4 text-[#5128E8]" />
-                      <span>Sync All Data to Firebase</span>
-                    </div>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">Live Synced</span>
-                  </button>
-
                   <button 
                     onClick={() => setShowEditProfileModal(true)} 
                     className="w-full p-4 flex justify-between items-center text-slate-700 hover:bg-slate-50"
@@ -1465,7 +1671,7 @@ export default function App() {
                     onClick={resetOnboarding} 
                     className="w-full p-4 flex justify-between items-center text-red-600 font-bold hover:bg-red-50"
                   >
-                    <span>🚪 Log Out / Retake Sign-Up</span>
+                    <span>🚪 Sign Out</span>
                     <ChevronRight className="w-4 h-4 text-red-400" />
                   </button>
                 </div>
@@ -1473,7 +1679,7 @@ export default function App() {
             )}
 
             {/* ============================================================ */}
-            {/* CHAT FEATURE COMING SOON MODAL (EXPLICIT USER REQUIREMENT)   */}
+            {/* CHAT / WHATSAPP COMMUNITY MODAL                              */}
             {/* ============================================================ */}
             {showChatComingSoonModal && (
               <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
@@ -1492,12 +1698,12 @@ export default function App() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <div className="inline-block bg-[#EAE5FF] text-[#5128E8] text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
-                      Coming Soon 🚀
+                    <div className="inline-block bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+                      Official Community Active 🟢
                     </div>
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Chat Feature Coming Soon!</h3>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">NearlyY Student Community</h3>
                     <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
-                      We're building direct, real-time messaging between Lohegaon residents, college students, and verified local vendors.
+                      Connect directly with fellow students, flat owners, and verified mess/laundry vendors in Lohegaon on our official WhatsApp community.
                     </p>
                   </div>
 
@@ -1505,7 +1711,7 @@ export default function App() {
                   <div className="bg-[#F7F5FF] rounded-2xl p-3.5 space-y-2 text-left border border-[#5128E8]/10 text-xs">
                     <div className="flex items-center space-x-2 text-slate-700">
                       <span className="text-sm">🍲</span>
-                      <span className="font-medium text-[11px]">Daily live mess menus & custom tiffin requests</span>
+                      <span className="font-medium text-[11px]">Daily live mess menus & meal deals</span>
                     </div>
                     <div className="flex items-center space-x-2 text-slate-700">
                       <span className="text-sm">🧺</span>
@@ -1518,30 +1724,29 @@ export default function App() {
                   </div>
 
                   <div className="space-y-2 pt-1">
+                    {/* Primary WhatsApp Community Button */}
+                    <button 
+                      onClick={() => {
+                        openWhatsAppCommunity();
+                      }}
+                      className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-md shadow-emerald-600/25 flex items-center justify-center space-x-2 hover:opacity-95 cursor-pointer active:scale-98 transition"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Join WhatsApp Community Now</span>
+                    </button>
+
                     {/* Notify me button */}
                     <button 
                       onClick={handleNotifyChat}
                       disabled={isNotifiedForChat}
-                      className={`w-full py-3 rounded-2xl font-bold text-xs flex items-center justify-center space-x-2 transition-all ${
+                      className={`w-full py-2.5 rounded-2xl font-bold text-xs flex items-center justify-center space-x-2 transition-all ${
                         isNotifiedForChat 
-                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
                           : 'bg-[#EAE5FF] text-[#5128E8] hover:bg-[#5128E8] hover:text-white'
                       }`}
                     >
                       <BellRing className="w-3.5 h-3.5" />
-                      <span>{isNotifiedForChat ? '✓ You will be notified when live!' : 'Notify Me When Chat Launches'}</span>
-                    </button>
-
-                    {/* WhatsApp Fallback Button */}
-                    <button 
-                      onClick={() => {
-                        setShowChatComingSoonModal(false);
-                        handleWhatsAppChat('NearlyY Concierge', 'Student Living Question');
-                      }}
-                      className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-md shadow-emerald-600/25 flex items-center justify-center space-x-2 hover:opacity-95"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      <span>Chat on WhatsApp Right Now</span>
+                      <span>{isNotifiedForChat ? '✓ Notified for in-app messaging' : 'Notify Me When In-App Chat Launches'}</span>
                     </button>
                   </div>
                 </div>
@@ -1632,7 +1837,7 @@ export default function App() {
             )}
 
             {/* BOTTOM NAVIGATION BAR */}
-            <div className="absolute bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-6 flex items-center justify-between z-40">
+            <div className="absolute bottom-0 left-0 right-0 h-[calc(4rem+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)] bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-6 flex items-center justify-between z-40">
               <button 
                 onClick={() => { setCurrentScreen('home'); setActiveTab('home'); }} 
                 className={`flex flex-col items-center text-[10px] font-bold ${currentScreen === 'home' ? 'text-[#5128E8]' : 'text-slate-400'}`}

@@ -1,6 +1,9 @@
 {
   "appId": "com.nearlyy.sync",
   "appName": "NearlyYsync",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
 }
-

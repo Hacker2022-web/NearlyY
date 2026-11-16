@@ -45,6 +45,23 @@ export function subscribeToServices(onUpdate) {
   }
 }
 
+// 1b. Fetch once directly from Firebase
+export async function fetchServicesFromFirebase() {
+  try {
+    const snapshot = await getDocs(collection(db, 'services'));
+    if (!snapshot.empty) {
+      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+  } catch (err) {
+    console.warn("fetchServicesFromFirebase error:", err.message);
+  }
+  const flatList = [];
+  Object.keys(CATEGORY_DATA).forEach(cat => {
+    CATEGORY_DATA[cat].forEach(item => flatList.push(item));
+  });
+  return flatList;
+}
+
 // 2. Add a new service listing (Mess, Laundry, Gym, Flat)
 export async function addServiceListing(item) {
   try {
