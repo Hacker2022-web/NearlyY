@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NearlyY — Local Living, Simplified | Lohegaon, Pune</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#F7F5FF',
+              100: '#EAE5FF',
+              200: '#D5CDFF',
+              300: '#B8A8FF',
+              400: '#9475FF',
+              500: '#6C47FF',
+              600: '#5128E8',
+              700: '#421DC7',
+              800: '#3517A1',
+              900: '#29127E',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-[#F7F5FF] min-h-screen text-slate-800 antialiased selection:bg-[#EAE5FF] selection:text-[#5128E8]">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const LOCALITY = "Lohegaon, Pune";
+
+    const CATEGORY_DATA = {
+      mess: [
+        {
+          id: 'mess-1',
+          name: 'Annapurna Executive & Student Mess',
+          category: 'mess',
+          locality: 'Lohegaon (Near Bus Stand)',
+          distance: '0.4 km away',
+          rating: 4.6,
+          reviewsCount: '1.2k',
+          priceDisplay: '₹2,000 / mo',
+          coverImage: 'https://images.unsplash.com/photo-1613292443284-8d10ef9383fe?w=800&auto=format&fit=crop&q=80',
+          dietType: 'Pure Veg',
+          tags: ['Unlimited Roti', 'Pure Veg', 'Weekly Sweet'],
+          pricing: [
+            { type: 'Single Thali', price: 90, note: '/per meal' },
+            { type: '15-Day Pass', price: 1200, note: 'save ₹150' },
+            { type: '30-Day Pass', price: 2000, note: 'save ₹400' }
+          ],
+          todayMenu: {
+            lunch: 'Paneer Butter Masala + Roti + Rice',
+            dinner: 'Veg Dum Biryani + Raita'
+          }
+        },
+        {
+          id: 'mess-2',
+          name: 'Shree Ganesh Homestyle Bhojanalay',
+          category: 'mess',
+          locality: 'Porwal Road, Lohegaon',
+          distance: '0.8 km away',
+          rating: 4.8,
+          reviewsCount: '890',
+          priceDisplay: '₹1,800 / mo',
+          coverImage: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&auto=format&fit=crop&q=80',
+          dietType: 'Pure Veg',
+          tags: ['Tiffin Delivery', 'Pure Veg', 'Fresh Phulkas'],
+          pricing: [
+            { type: 'Single Thali', price: 80, note: '/per meal' },
+            { type: '15-Day Pass', price: 1050, note: 'save ₹150' },
+            { type: '30-Day Pass', price: 1800, note: 'save ₹300' }
+          ]
+        },
+        {
+          id: 'mess-3',
+          name: 'Kolhapuri Tiffin & Mess Services',
+          category: 'mess',
+          locality: 'Lohegaon Chowk, Pune',
+          distance: '1.1 km away',
+          rating: 4.5,
+          reviewsCount: '620',
+          priceDisplay: '₹2,200 / mo',
+          coverImage: 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=800&auto=format&fit=crop&q=80',
+          dietType: 'Veg & Non-Veg',
+          tags: ['Sunday Special Chicken', 'Spicy Rassa'],
+          pricing: [
+            { type: 'Single Thali', price: 110, note: '/per meal' },
+            { type: '30-Day Pass', price: 2200, note: 'save ₹400' }
+          ]
+        }
+      ],
+      laundry: [
+        {
+          id: 'laundry-1',
+          name: 'Royal Express Laundry & Steam Press',
+          category: 'laundry',
+          locality: 'Porwal Road, Lohegaon',
+          distance: '0.5 km away',
+          rating: 4.7,
+          reviewsCount: '540',
+          coverImage: 'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=800&auto=format&fit=crop&q=80',
+          badge: '⚡ 24h Express'
+        },
+        {
+          id: 'laundry-2',
+          name: 'Student Pocket Wash & Fold Hub',
+          category: 'laundry',
+          locality: 'Near Airforce Station, Lohegaon',
+          distance: '0.9 km away',
+          rating: 4.6,
+          reviewsCount: '310',
+          coverImage: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=800&auto=format&fit=crop&q=80',
+          badge: 'Economy'
+        }
+      ],
+      gym: [
+        {
+          id: 'gym-1',
+          name: 'Iron Paradise Fitness Club',
+          category: 'gym',
+          locality: 'Porwal Road, Lohegaon',
+          distance: '0.6 km away',
+          rating: 4.9,
+          reviewsCount: '780',
+          coverImage: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&auto=format&fit=crop&q=80',
+          plans: [{ title: 'Monthly', price: 999 }, { title: '3 Months', price: 2499 }]
+        }
+      ],
+      flats: [
+        {
+          id: 'flat-1',
+          name: 'Sunrise Luxury PG & Co-Living',
+          category: 'flats',
+          locality: 'Porwal Road, Lohegaon',
+          price: 6500,
+          deposit: 5000,
+          sharing: 'Double Sharing',
+          coverImage: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80',
+          rating: 4.7,
+          reviewsCount: '842'
+        }
+      ]
+    };
+
+    function App() {
+      const [isOnboarded, setIsOnboarded] = useState(false);
+      const [onboardingStep, setOnboardingStep] = useState(1);
+      const [currentScreen, setCurrentScreen] = useState('home');
+      const [activeCategory, setActiveCategory] = useState('mess');
+      const [selectedItem, setSelectedItem] = useState(CATEGORY_DATA.mess[0]);
+      const [showChatComingSoon, setShowChatComingSoon] = useState(false);
+      const [isNotified, setIsNotified] = useState(false);
+      const [bookings, setBookings] = useState([
+        { id: 'b1', title: 'Trial Meal at Annapurna Mess', service: 'Mess & Tiffin', date: 'Today', status: 'Confirmed 🟢' }
+      ]);
+      const [profile, setProfile] = useState({
+        name: 'Sahil Dehadray',
+        college: 'ADYPU',
+        collegeFull: 'Ajeenkya DY Patil University, Lohegaon',
+        livingType: 'PG',
+        subLocality: 'Porwal Road, Lohegaon',
+        interests: ['Mess & Tiffin', 'Flats & PG', 'Gym & Fitness', 'Laundry & Dry Cleaning']
+      });
+
+      const handleBooking = (title, service) => {
+        const newB = { id: `b_${Date.now()}`, title, service, date: 'Just now', status: 'Confirmed 🟢' };
+        setBookings([newB, ...bookings]);
+        setCurrentScreen('confirmed');
+      };
+
+      const handleWhatsApp = (name, type) => {
+        window.open(`https://wa.me/919876543210?text=Hi%20${encodeURIComponent(name)}!%20Inquiring%20about%20${encodeURIComponent(type)}%20via%20NearlyY.`, '_blank');
+      };
+
+      return (
+        <div className="min-h-screen bg-[#F7F5FF] flex flex-col items-center justify-center p-0 sm:p-4">
+          <div className="w-full max-w-[430px] min-h-[900px] h-full sm:h-[890px] bg-white sm:rounded-[44px] shadow-[0_20px_60px_rgba(81,40,232,0.12)] flex flex-col overflow-hidden relative border-0 sm:border-[8px] sm:border-slate-850">
+            
+            {/* iOS Status Bar */}
+            <div className="w-full h-11 pt-2 px-7 flex items-center justify-between text-xs font-semibold text-slate-800 bg-white/90 backdrop-blur-md sticky top-0 z-50 shrink-0">
+              <span>9:41</span>
+              <div className="w-20 h-4 bg-slate-900 rounded-full mx-auto -mt-1 hidden sm:block"></div>
+              <span className="text-[10px] font-bold text-slate-700">5G</span>
+            </div>
+
+            {/* ONBOARDING FLOW */}
+            {!isOnboarded ? (
+              <div className="flex-1 flex flex-col justify-between p-6 overflow-y-auto no-scrollbar bg-[#F7F5FF]">
+                {onboardingStep === 1 && (
+                  <div className="flex-1 flex flex-col justify-between py-2 space-y-5 text-center">
+                    <div className="flex items-center justify-center space-x-2.5 pt-2">
+                      <div className="w-10 h-10 rounded-2xl bg-[#5128E8] text-white font-black text-sm flex items-center justify-center shadow-md">NY</div>
+                      <h1 className="text-2xl font-black text-slate-900">NearlyY</h1>
+                    </div>
+                    <div className="space-y-2">
+                      <h2 className="text-3xl font-black text-slate-900 leading-tight">Your campus, <br />all in <span className="text-[#5128E8]">one place.</span></h2>
+                      <p className="text-xs text-slate-500">Live better. Stay connected in Lohegaon, Pune.</p>
+                    </div>
+                    <div className="relative rounded-3xl overflow-hidden shadow-xl h-60 w-full">
+                      <img src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&auto=format&fit=crop&q=80" alt="Lohegaon" className="w-full h-full object-cover" />
+                      <div className="absolute bottom-4 left-4 bg-white/95 px-3 py-1 rounded-full text-xs font-bold text-slate-900 shadow-md">📍 Lohegaon, Pune</div>
+                    </div>
+                    <button onClick={()=>setIsOnboarded(true)} className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#5128E8] to-[#6C47FF] text-white font-bold text-sm shadow-lg">Get Started →</button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* MAIN DASHBOARD */
+              <div className="flex-1 overflow-y-auto no-scrollbar pb-20 bg-[#F7F5FF]">
+                {currentScreen === 'home' && (
+                  <div className="p-5 space-y-5">
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2.5">
+                        <div className="w-10 h-10 rounded-2xl bg-[#5128E8] text-white font-black text-sm flex items-center justify-center shadow-md">NY</div>
+                        <div>
+                          <div className="flex items-center space-x-1.5">
+                            <h1 className="text-xl font-black text-slate-900">NearlyY</h1>
+                            <span className="text-[10px] bg-[#EAE5FF] text-[#5128E8] px-2 py-0.5 rounded-full font-bold">Lohegaon</span>
+                          </div>
+                          <p className="text-xs text-slate-500 font-medium">Welcome back, {profile.name.split(' ')[0]}!</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold bg-white px-2.5 py-1.5 rounded-full border shadow-xs text-slate-700">📍 Porwal Rd</span>
+                    </div>
+
+                    {/* Firebase status bar */}
+                    <div className="flex items-center justify-between bg-white px-3.5 py-2 rounded-2xl border border-slate-100 shadow-xs text-xs">
+                      <div className="flex items-center space-x-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                        <span className="font-bold text-slate-800 text-[11px]">Firebase: Synced 🟢</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-[#5128E8] bg-[#EAE5FF] px-2 py-0.5 rounded-full">Real-time</span>
+                    </div>
+
+                    {/* Hero Banner */}
+                    <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-900 to-indigo-950 p-5 text-white shadow-xl">
+                      <h2 className="text-xl font-extrabold">New City. New Services.</h2>
+                      <p className="text-xs text-slate-300 mt-1">Everything you need in Lohegaon at your fingertips.</p>
+                      <button onClick={()=>{ setActiveCategory('mess'); setCurrentScreen('category-list'); }} className="mt-3 px-4 py-2 rounded-xl bg-white text-slate-900 text-xs font-bold">Explore Now →</button>
+                    </div>
+
+                    {/* 4 Core Services */}
+                    <div className="grid grid-cols-4 gap-2.5">
+                      {[
+                        { id: 'mess', icon: '🍲', label: 'Mess & Tiffin' },
+                        { id: 'laundry', icon: '👕', label: 'Laundry' },
+                        { id: 'gym', icon: '🏋️', label: 'Gym' },
+                        { id: 'flats', icon: '🏡', label: 'Flats & PG' }
+                      ].map(s => (
+                        <button key={s.id} onClick={()=>{ setActiveCategory(s.id); setCurrentScreen('category-list'); }} className="p-3 bg-white rounded-2xl border border-slate-100 flex flex-col items-center hover:border-[#5128E8]/40 transition-all shadow-xs">
+                          <span className="text-2xl">{s.icon}</span>
+                          <span className="text-[11px] font-bold text-slate-800 mt-1 text-center leading-tight">{s.label}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Chat Prompt Banner */}
+                    <div onClick={()=>setShowChatComingSoon(true)} className="p-4 bg-[#EAE5FF]/70 border border-[#5128E8]/20 rounded-2xl flex items-center justify-between cursor-pointer">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">💬</span>
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900">Need help finding a service?</h4>
+                          <p className="text-[10px] text-slate-600">Chat with our Lohegaon student desk</p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-[#5128E8] bg-white px-2.5 py-1 rounded-full shadow-xs">Chat →</span>
+                    </div>
+
+                    {/* Listing Preview */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-bold text-slate-900">Featured in Lohegaon</h3>
+                      {CATEGORY_DATA.mess.map(m => (
+                        <div key={m.id} onClick={()=>{ setSelectedItem(m); setCurrentScreen('detail'); }} className="p-3 bg-white rounded-2xl border border-slate-100 flex space-x-3 cursor-pointer shadow-xs">
+                          <img src={m.coverImage} className="w-20 h-20 rounded-xl object-cover" />
+                          <div className="flex-1 flex flex-col justify-between">
+                            <div>
+                              <h4 className="text-xs font-bold text-slate-900">{m.name}</h4>
+                              <p className="text-[10px] text-slate-500">{m.locality}</p>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-extrabold text-[#5128E8]">₹90/thali</span>
+                              <span className="text-xs font-bold text-slate-700">View Details →</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* CATEGORY LIST */}
+                {currentScreen === 'category-list' && (
+                  <div className="p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <button onClick={()=>setCurrentScreen('home')} className="w-9 h-9 rounded-full bg-white border flex items-center justify-center font-bold">←</button>
+                      <h2 className="text-base font-extrabold capitalize">{activeCategory} in Lohegaon</h2>
+                      <div className="w-9"></div>
+                    </div>
+                    <div className="space-y-3">
+                      {(CATEGORY_DATA[activeCategory]||[]).map(item => (
+                        <div key={item.id} onClick={()=>{ setSelectedItem(item); setCurrentScreen('detail'); }} className="p-3.5 bg-white rounded-2xl border border-slate-100 flex space-x-3 cursor-pointer shadow-xs">
+                          <img src={item.coverImage} className="w-24 h-24 rounded-xl object-cover" />
+                          <div className="flex-1 flex flex-col justify-between">
+                            <div>
+                              <h4 className="text-xs font-bold text-slate-900">{item.name}</h4>
+                              <p className="text-[11px] text-slate-500 mt-0.5">{item.locality}</p>
+                            </div>
+                            <span className="text-xs font-bold text-[#5128E8]">View Details →</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* DETAIL SCREEN */}
+                {currentScreen === 'detail' && selectedItem && (
+                  <div className="space-y-4">
+                    <div className="relative h-60 w-full">
+                      <img src={selectedItem.coverImage} className="w-full h-full object-cover" />
+                      <button onClick={()=>setCurrentScreen('category-list')} className="absolute top-4 left-4 w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-md font-bold">←</button>
+                      <div className="absolute bottom-4 left-4 text-white">
+                        <h2 className="text-xl font-black drop-shadow">{selectedItem.name}</h2>
+                        <p className="text-xs drop-shadow">{selectedItem.locality}</p>
+                      </div>
+                    </div>
+                    <div className="px-5 space-y-4">
+                      <button onClick={()=>handleBooking(`Booking at ${selectedItem.name}`, selectedItem.category)} className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#5128E8] to-[#6C47FF] text-white font-bold text-sm shadow-lg">
+                        Book Instant Service →
+                      </button>
+                      <button onClick={()=>handleWhatsApp(selectedItem.name, selectedItem.category)} className="w-full py-3.5 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs">
+                        Chat on WhatsApp Directly →
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* CONFIRMED */}
+                {currentScreen === 'confirmed' && (
+                  <div className="p-6 text-center space-y-6 pt-16">
+                    <div className="w-20 h-20 rounded-full bg-[#EAE5FF] text-[#5128E8] text-4xl flex items-center justify-center mx-auto shadow-lg">✓</div>
+                    <h2 className="text-2xl font-black">Booking Confirmed!</h2>
+                    <p className="text-xs text-slate-500">Your service booking is saved in Firebase and recorded in Lohegaon.</p>
+                    <button onClick={()=>setCurrentScreen('home')} className="w-full py-3.5 rounded-2xl bg-[#5128E8] text-white font-bold text-sm shadow-md">Back to Home</button>
+                  </div>
+                )}
+
+                {/* PROFILE */}
+                {currentScreen === 'profile' && (
+                  <div className="p-5 space-y-5">
+                    <h2 className="text-lg font-extrabold">My Profile</h2>
+                    <div className="p-5 bg-white rounded-3xl border border-slate-100 text-center space-y-2 shadow-xs">
+                      <div className="w-20 h-20 rounded-full bg-[#EAE5FF] text-[#5128E8] font-black text-2xl flex items-center justify-center mx-auto">S</div>
+                      <h3 className="text-lg font-extrabold">{profile.name}</h3>
+                      <p className="text-xs text-slate-500">{profile.college} • {profile.subLocality}</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-bold text-slate-900">My Bookings ({bookings.length})</h4>
+                      <div className="space-y-1.5">
+                        {bookings.map(b => (
+                          <div key={b.id} className="p-3 bg-white rounded-2xl border text-xs flex justify-between items-center shadow-xs">
+                            <span className="font-bold">{b.title}</span>
+                            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">{b.status}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button onClick={()=>alert('Synced all data with Firebase Firestore!')} className="w-full p-4 rounded-2xl bg-white border border-slate-100 text-[#5128E8] font-bold text-xs flex justify-between items-center shadow-xs">
+                      <span>⚡ Sync All Data to Firebase</span>
+                      <span>Live Synced</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* CHAT COMING SOON MODAL */}
+            {showChatComingSoon && (
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl text-center relative border border-[#EAE5FF]">
+                  <button onClick={()=>setShowChatComingSoon(false)} className="absolute top-4 right-4 text-slate-400 font-bold">✕</button>
+                  <div className="w-16 h-16 rounded-full bg-[#EAE5FF] text-[#5128E8] text-3xl flex items-center justify-center mx-auto">💬</div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-extrabold text-[#5128E8] bg-[#EAE5FF] px-2.5 py-0.5 rounded-full">Coming Soon 🚀</span>
+                    <h3 className="text-lg font-black text-slate-900">Chat Feature Coming Soon!</h3>
+                    <p className="text-xs text-slate-500">We are building direct messaging between Lohegaon residents and verified local vendors.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <button onClick={()=>setIsNotified(true)} className="w-full py-3 rounded-2xl bg-[#EAE5FF] text-[#5128E8] font-bold text-xs">
+                      {isNotified ? '✓ You will be notified!' : 'Notify Me When Chat Launches'}
+                    </button>
+                    <button onClick={()=>{ setShowChatComingSoon(false); handleWhatsApp('NearlyY Concierge', 'Student Inquiry'); }} className="w-full py-3.5 rounded-2xl bg-emerald-600 text-white font-bold text-xs shadow-md">
+                      Chat on WhatsApp Right Now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* BOTTOM NAV */}
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t px-6 flex items-center justify-between z-40">
+              <button onClick={()=>{ setCurrentScreen('home'); }} className={`flex flex-col items-center text-[10px] font-bold ${currentScreen==='home'?'text-[#5128E8]':'text-slate-400'}`}>
+                <span className="text-lg">🏠</span><span>Home</span>
+              </button>
+              <button onClick={()=>{ setActiveCategory('mess'); setCurrentScreen('category-list'); }} className={`flex flex-col items-center text-[10px] font-bold ${currentScreen==='category-list'?'text-[#5128E8]':'text-slate-400'}`}>
+                <span className="text-lg">🧭</span><span>Explore</span>
+              </button>
+              <button onClick={()=>setShowChatComingSoon(true)} className="flex flex-col items-center text-[10px] font-bold text-slate-400 hover:text-[#5128E8] relative">
+                <span className="text-lg">💬</span><span>Chat</span>
+                <span className="w-2 h-2 rounded-full bg-[#5128E8] absolute top-0 right-1"></span>
+              </button>
+              <button onClick={()=>{ setCurrentScreen('profile'); }} className={`flex flex-col items-center text-[10px] font-bold ${currentScreen==='profile'?'text-[#5128E8]':'text-slate-400'}`}>
+                <span className="text-lg">👤</span><span>Profile</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
