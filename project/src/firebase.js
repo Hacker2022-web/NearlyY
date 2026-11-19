@@ -33,6 +33,39 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
+// Category normalizer to prevent misclassified vendor listings
+export function getSanitizedCategory(item) {
+  if (!item) return 'mess';
+  const name = (item.name || '').toLowerCase();
+  const rawCat = (item.category || '').toLowerCase().trim();
+
+  // If item name clearly denotes category, prioritize that to catch misclassifications
+  if (name.includes('thali') || name.includes('tiffin') || name.includes('mess') || name.includes('bhojan') || name.includes('pakpalak') || name.includes('food') || name.includes('meal')) {
+    return 'mess';
+  }
+  if (name.includes('laundry') || name.includes('dry clean') || name.includes('wash') || name.includes('ironing')) {
+    return 'laundry';
+  }
+  if (name.includes('gym') || name.includes('fitness') || name.includes('crossfit') || name.includes('workout')) {
+    return 'gym';
+  }
+  if (name.includes('pg') || name.includes('flat') || name.includes('bhk') || name.includes('hostel') || name.includes('stay') || name.includes('coliving') || name.includes('nest') || name.includes('residency')) {
+    return 'flats';
+  }
+  if (name.includes('event') || name.includes('party') || name.includes('dj') || name.includes('night') || name.includes('fest')) {
+    return 'parties';
+  }
+
+  // Fallback to normalized rawCat
+  if (['mess', 'laundry', 'gym', 'flats', 'parties'].includes(rawCat)) return rawCat;
+  if (rawCat.includes('mess') || rawCat.includes('tiffin')) return 'mess';
+  if (rawCat.includes('laund')) return 'laundry';
+  if (rawCat.includes('gym') || rawCat.includes('fit')) return 'gym';
+  if (rawCat.includes('flat') || rawCat.includes('pg') || rawCat.includes('room')) return 'flats';
+  if (rawCat.includes('part') || rawCat.includes('event')) return 'parties';
+  return 'mess';
+}
+
 // Real-time listener for services catalog (bidirectionally synced with NearlyYsync)
 export function subscribeToServices(onUpdate) {
   try {
@@ -54,7 +87,10 @@ export function subscribeToServices(onUpdate) {
           if (remoteMap.has(defaultItem.id)) {
             const remoteItem = remoteMap.get(defaultItem.id);
             if (!remoteItem._deleted) {
-              categorized[cat].push({ ...defaultItem, ...remoteItem });
+              const properCat = getSanitizedCategory(remoteItem) || cat;
+              if (categorized[properCat]) {
+                categorized[properCat].push({ ...defaultItem, ...remoteItem, category: properCat });
+              }
             }
           } else {
             categorized[cat].push(defaultItem);
@@ -62,13 +98,13 @@ export function subscribeToServices(onUpdate) {
         });
       });
 
-      // 2. Add any custom items added in NearlyYsync (like Pakpalak!)
+      // 2. Add any custom items added in NearlyYsync
       remoteMap.forEach((item, id) => {
         if (!seenIds.has(id) && !item._deleted) {
-          const cat = item.category || 'mess';
+          const cat = getSanitizedCategory(item);
           if (categorized[cat]) {
             // New user listings placed at top of category feed
-            categorized[cat].unshift(item);
+            categorized[cat].unshift({ ...item, category: cat });
           }
         }
       });
@@ -355,5 +391,69 @@ export function subscribeToBookings(userEmail, onUpdate) {
     }, () => {});
   } catch {
     return () => {};
+  }
+}
+
+// ============================================================
+// App Version & Remote Update Management (OTA + APK)
+// ============================================================
+
+export const DEFAULT_APP_CONFIG = {
+  latestVersion: "1.0.1",
+  minVersion: "1.0.0",
+  apkUrl: "https://github.com/Hacker2022-web/NearlyY/raw/main/APKs/NearlyY.apk",
+  bundleUrl: "",
+  bundleVersion: "",
+  changelog: "• Capgo Live Over-The-Air (OTA) updates\n• Direct in-app APK installer with 1-tap download\n• Fixed Flats & PG image display & category routing\n• Full-screen swipe-to-back & system gesture navigation\n• Lohegaon campus vendor sync with NearlyYsync",
+  forceUpdate: false,
+  updatedAt: new Date().toISOString()
+};
+
+export async function fetchAppConfig() {
+  try {
+    const docRef = doc(db, 'app_config', 'version');
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() };
+    }
+    await setDoc(docRef, DEFAULT_APP_CONFIG, { merge: true });
+    return DEFAULT_APP_CONFIG;
+  } catch (err) {
+    console.warn("fetchAppConfig notice (using default):", err.message);
+    return DEFAULT_APP_CONFIG;
+  }
+}
+
+export function subscribeToAppConfig(onUpdate) {
+  try {
+    const docRef = doc(db, 'app_config', 'version');
+    return onSnapshot(docRef, (snap) => {
+      if (snap.exists()) {
+        onUpdate({ id: snap.id, ...snap.data() });
+      } else {
+        setDoc(docRef, DEFAULT_APP_CONFIG, { merge: true }).catch(() => {});
+        onUpdate(DEFAULT_APP_CONFIG);
+      }
+    }, (err) => {
+      console.warn("subscribeToAppConfig notice:", err.message);
+      onUpdate(DEFAULT_APP_CONFIG);
+    });
+  } catch {
+    onUpdate(DEFAULT_APP_CONFIG);
+    return () => {};
+  }
+}
+
+export async function updateAppConfig(configUpdates) {
+  try {
+    const docRef = doc(db, 'app_config', 'version');
+    await setDoc(docRef, {
+      ...configUpdates,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    return { success: true };
+  } catch (err) {
+    console.error("updateAppConfig error:", err);
+    return { success: false, error: err.message };
   }
 }

@@ -12,6 +12,11 @@
       "providers": [
         "google.com"
       ]
+    },
+    "CapacitorUpdater": {
+      "autoUpdate": false,
+      "appReadyTimeout": 15000,
+      "responseTimeout": 30
     }
   }
 }

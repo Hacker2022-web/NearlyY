@@ -6,12 +6,13 @@ import {
   MessageCircle, ExternalLink, RefreshCw, Zap, Shield, Users, 
   Calendar, Star, ChevronRight, X, ArrowUpRight, Check, Eye,
   SlidersHorizontal, Smartphone, Monitor, UploadCloud, Image as ImageIcon,
-  Info, ChevronLeft, Sparkles
+  Info, ChevronLeft, Sparkles, Rocket, Download, ArrowUpCircle
 } from 'lucide-react';
 import { 
   subscribeToServices, fetchServicesFromFirebase, addServiceListing, updateServiceListing, 
   deleteServiceListing, subscribeToIncomingBookings, updateBookingStatus, 
-  subscribeToInquiries, subscribeToUsers, seedAllDefaultServices 
+  subscribeToInquiries, subscribeToUsers, seedAllDefaultServices,
+  subscribeToAppConfig, updateAppConfig, DEFAULT_APP_CONFIG
 } from './firebase';
 
 const LOHEGAON_AREAS = [
@@ -93,6 +94,11 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState('Live Synced 🟢');
   const [toastMessage, setToastMessage] = useState('');
 
+  // Releases & Updates State
+  const [appConfig, setAppConfig] = useState(DEFAULT_APP_CONFIG);
+  const [releaseForm, setReleaseForm] = useState(DEFAULT_APP_CONFIG);
+  const [isPublishingRelease, setIsPublishingRelease] = useState(false);
+
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -155,11 +161,20 @@ export default function App() {
       setUsers(data);
     });
 
+    const unsubConfig = subscribeToAppConfig((config) => {
+      setAppConfig(config);
+      setReleaseForm(prev => ({
+        ...DEFAULT_APP_CONFIG,
+        ...config
+      }));
+    });
+
     return () => {
       unsubServices && unsubServices();
       unsubBookings && unsubBookings();
       unsubInquiries && unsubInquiries();
       unsubUsers && unsubUsers();
+      unsubConfig && unsubConfig();
     };
   }, []);
 
@@ -479,6 +494,23 @@ export default function App() {
     }
   };
 
+  const handlePublishRelease = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setIsPublishingRelease(true);
+    try {
+      const res = await updateAppConfig(releaseForm);
+      if (res.success) {
+        showToast(`🚀 Release v${releaseForm.latestVersion} broadcasted to all devices!`);
+      } else {
+        showToast(`❌ Error publishing release: ${res.error}`);
+      }
+    } catch (err) {
+      showToast(`❌ Error: ${err.message}`);
+    } finally {
+      setIsPublishingRelease(false);
+    }
+  };
+
   const handleOpenMenuQuickEdit = (item) => {
     setShowMenuModal(item);
     setMenuForm({
@@ -597,22 +629,26 @@ export default function App() {
         </div>
 
         {/* Quick Metrics Bar */}
-        <div className="grid grid-cols-4 gap-1 p-3 bg-white border-b border-slate-100 text-center">
+        <div className="grid grid-cols-5 gap-1 p-2.5 bg-white border-b border-slate-100 text-center">
           <div onClick={() => setActiveTab('listings')} className={`p-1.5 rounded-xl cursor-pointer ${activeTab === 'listings' ? 'bg-[#EAE5FF]' : 'hover:bg-slate-50'}`}>
-            <span className="text-[10px] text-slate-400 block font-bold">Listings</span>
-            <span className="text-sm font-black text-slate-900">{services.length}</span>
+            <span className="text-[9px] text-slate-400 block font-bold">Listings</span>
+            <span className="text-xs font-black text-slate-900">{services.length}</span>
           </div>
           <div onClick={() => setActiveTab('bookings')} className={`p-1.5 rounded-xl cursor-pointer ${activeTab === 'bookings' ? 'bg-[#EAE5FF]' : 'hover:bg-slate-50'}`}>
-            <span className="text-[10px] text-slate-400 block font-bold">Orders</span>
-            <span className="text-sm font-black text-[#5128E8]">{bookings.length}</span>
+            <span className="text-[9px] text-slate-400 block font-bold">Orders</span>
+            <span className="text-xs font-black text-[#5128E8]">{bookings.length}</span>
           </div>
           <div onClick={() => setActiveTab('inquiries')} className={`p-1.5 rounded-xl cursor-pointer ${activeTab === 'inquiries' ? 'bg-[#EAE5FF]' : 'hover:bg-slate-50'}`}>
-            <span className="text-[10px] text-slate-400 block font-bold">Leads</span>
-            <span className="text-sm font-black text-slate-900">{inquiries.length}</span>
+            <span className="text-[9px] text-slate-400 block font-bold">Leads</span>
+            <span className="text-xs font-black text-slate-900">{inquiries.length}</span>
           </div>
           <div onClick={() => setActiveTab('users')} className={`p-1.5 rounded-xl cursor-pointer ${activeTab === 'users' ? 'bg-[#EAE5FF]' : 'hover:bg-slate-50'}`}>
-            <span className="text-[10px] text-slate-400 block font-bold">Users</span>
-            <span className="text-sm font-black text-slate-900">{users.length}</span>
+            <span className="text-[9px] text-slate-400 block font-bold">Users</span>
+            <span className="text-xs font-black text-slate-900">{users.length}</span>
+          </div>
+          <div onClick={() => setActiveTab('releases')} className={`p-1.5 rounded-xl cursor-pointer ${activeTab === 'releases' ? 'bg-[#EAE5FF]' : 'hover:bg-slate-50'}`}>
+            <span className="text-[9px] text-slate-400 block font-bold">Release</span>
+            <span className="text-xs font-black text-[#5128E8]">v{appConfig?.latestVersion || '1.0.1'}</span>
           </div>
         </div>
 
@@ -934,12 +970,155 @@ export default function App() {
             </div>
           )}
 
+          {/* TAB 5: APP RELEASES & OTA DEPLOYMENTS */}
+          {activeTab === 'releases' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Rocket className="w-3.5 h-3.5 text-[#5128E8]" />
+                    <span>App Releases & OTA Center</span>
+                  </h3>
+                  <p className="text-[10px] text-slate-400">Push live updates to all student devices in Lohegaon</p>
+                </div>
+                <span className="text-[10px] font-bold bg-[#EAE5FF] text-[#5128E8] px-2.5 py-1 rounded-full border border-purple-200">
+                  v{appConfig?.latestVersion || '1.0.1'} Live
+                </span>
+              </div>
+
+              {/* Status Banner */}
+              <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center font-bold">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900">Broadcast Channel Active</h4>
+                      <p className="text-[10px] text-slate-400">Devices listening via Firestore onSnapshot</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    Sync Active
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[10px] pt-1">
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                    <span className="text-slate-400 block font-semibold">Native APK Target</span>
+                    <span className="text-slate-800 font-bold truncate block">v{appConfig?.latestVersion || '1.0.1'}</span>
+                  </div>
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                    <span className="text-slate-400 block font-semibold">Live Web OTA</span>
+                    <span className="text-slate-800 font-bold truncate block">
+                      {appConfig?.bundleUrl ? 'Configured (Capgo)' : 'Native APK Direct'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Release Management Form */}
+              <form onSubmit={handlePublishRelease} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-xs space-y-3">
+                <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                  <ArrowUpCircle className="w-4 h-4 text-[#5128E8]" />
+                  <span>Publish New App Release</span>
+                </h4>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-slate-700">Latest App Version (SemVer)</label>
+                    <div className="flex gap-1">
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          const parts = (releaseForm.latestVersion || '1.0.0').split('.').map(Number);
+                          parts[parts.length - 1] = (parts[parts.length - 1] || 0) + 1;
+                          setReleaseForm({ ...releaseForm, latestVersion: parts.join('.') });
+                        }}
+                        className="text-[9px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded"
+                      >
+                        +0.0.1 Bump
+                      </button>
+                    </div>
+                  </div>
+                  <input 
+                    type="text" 
+                    value={releaseForm.latestVersion || ''} 
+                    onChange={(e) => setReleaseForm({ ...releaseForm, latestVersion: e.target.value })}
+                    placeholder="e.g. 1.0.1"
+                    className="w-full p-2.5 rounded-xl border text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#5128E8]"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700">Direct APK Download URL</label>
+                  <input 
+                    type="url" 
+                    value={releaseForm.apkUrl || ''} 
+                    onChange={(e) => setReleaseForm({ ...releaseForm, apkUrl: e.target.value })}
+                    placeholder="https://github.com/.../NearlyY.apk"
+                    className="w-full p-2.5 rounded-xl border text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#5128E8]"
+                    required
+                  />
+                  <p className="text-[9px] text-slate-400">Direct link to GitHub Releases or hosting repository</p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700">Live Web OTA Bundle URL (Optional - Capgo)</label>
+                  <input 
+                    type="text" 
+                    value={releaseForm.bundleUrl || ''} 
+                    onChange={(e) => setReleaseForm({ ...releaseForm, bundleUrl: e.target.value })}
+                    placeholder="https://.../dist.zip (Optional for Capgo OTA)"
+                    className="w-full p-2.5 rounded-xl border text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#5128E8]"
+                  />
+                  <p className="text-[9px] text-slate-400">Optional zip bundle for instant background HTML/CSS/JS updates</p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700">What's New / Release Changelog</label>
+                  <textarea 
+                    rows={4}
+                    value={releaseForm.changelog || ''} 
+                    onChange={(e) => setReleaseForm({ ...releaseForm, changelog: e.target.value })}
+                    placeholder="• Added new features&#10;• Bug fixes and speed improvements"
+                    className="w-full p-2.5 rounded-xl border text-xs font-normal focus:outline-none focus:ring-2 focus:ring-[#5128E8]"
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2 py-1">
+                  <input 
+                    type="checkbox" 
+                    id="forceUpdateToggle" 
+                    checked={!!releaseForm.forceUpdate} 
+                    onChange={(e) => setReleaseForm({ ...releaseForm, forceUpdate: e.target.checked })}
+                    className="w-4 h-4 rounded text-[#5128E8] focus:ring-[#5128E8]"
+                  />
+                  <label htmlFor="forceUpdateToggle" className="text-xs font-semibold text-slate-700">
+                    Force Update (prevents using older app until updated)
+                  </label>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={isPublishingRelease}
+                  className="w-full py-3 bg-[#5128E8] hover:bg-[#431fcd] text-white font-bold rounded-xl text-xs shadow-md shadow-[#5128E8]/20 transition flex items-center justify-center space-x-1.5 disabled:opacity-50"
+                >
+                  <Rocket className="w-4 h-4" />
+                  <span>{isPublishingRelease ? 'Broadcasting Release...' : 'Broadcast Release to All Devices'}</span>
+                </button>
+              </form>
+            </div>
+          )}
+
         </div>
 
         {/* ============================================================ */}
         {/* MOBILE BOTTOM NAVIGATION BAR                                 */}
         {/* ============================================================ */}
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-6 flex items-center justify-between z-40">
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 flex items-center justify-between z-40">
           <button 
             onClick={() => setActiveTab('listings')} 
             className={`flex flex-col items-center text-[10px] font-bold ${activeTab === 'listings' ? 'text-[#5128E8]' : 'text-slate-400'}`}
@@ -973,6 +1152,14 @@ export default function App() {
           >
             <Users className="w-5 h-5" />
             <span>Users</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('releases')} 
+            className={`flex flex-col items-center text-[10px] font-bold ${activeTab === 'releases' ? 'text-[#5128E8]' : 'text-slate-400'}`}
+          >
+            <Rocket className="w-5 h-5" />
+            <span>Releases</span>
           </button>
         </div>
 

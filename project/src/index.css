@@ -129,7 +129,7 @@ body {
   --sal: max(var(--safe-area-inset-left, 0px), env(safe-area-inset-left, 0px));
   --sar: max(var(--safe-area-inset-right, 0px), env(safe-area-inset-right, 0px));
 
-  --status-bar-fallback: 44px;
+  --status-bar-fallback: 52px;
   --nav-bar-fallback: 16px;
 
   --app-safe-top: max(var(--sat), var(--status-bar-fallback));
@@ -148,7 +148,7 @@ body {
 /* Safe area utilities */
 .safe-top { padding-top: var(--app-safe-top); }
 .safe-bottom { padding-bottom: var(--app-safe-bottom); }
-.safe-content-top { padding-top: calc(var(--app-safe-top) + 0.75rem); }
+.safe-content-top { padding-top: calc(var(--app-safe-top) + 0.875rem); }
 
 @media (min-width: 640px) {
   .safe-content-top { padding-top: 1.25rem; }

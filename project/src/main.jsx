@@ -2,6 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
+import { notifyAppReady } from './updater';
+
+// Notify Capgo native live updater plugin immediately
+notifyAppReady();
 
 class ErrorBoundary extends React.Component {
   constructor(props) {

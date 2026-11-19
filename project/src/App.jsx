@@ -8,7 +8,8 @@ import {
   Info, LogOut, Crown, ShoppingBag, Filter, ArrowLeft, Shield, Compass, User,
   Mail, Camera, GraduationCap, Briefcase, Building, X, CheckSquare, Square,
   MessageSquare, Radio, Send, BellRing, ChevronLeft, Image as ImageIcon,
-  Instagram, PhoneCall, Music, Ticket, ExternalLink, Plus, Minus, Menu, MoreHorizontal
+  Instagram, PhoneCall, Music, Ticket, ExternalLink, Plus, Minus, Menu, MoreHorizontal,
+  Download, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { 
   LOCALITY, SERVICES_MENU, CATEGORY_DATA, USER_PROFILE 
@@ -16,8 +17,14 @@ import {
 import { 
   subscribeToServices, seedFirestore, syncUserProfile, 
   recordBooking, recordInquiry, subscribeToBookings,
-  signInWithGoogle, logoutUser, listenToAuthState
+  signInWithGoogle, logoutUser, listenToAuthState,
+  subscribeToAppConfig, fetchAppConfig
 } from './firebase';
+import { 
+  isVersionNewer, downloadAndApplyBundle, reloadApp, notifyAppReady 
+} from './updater';
+
+export const APP_VERSION = '1.0.0';
 
 // Curated Lohegaon Campus & Living Slides for Front Page
 const HERO_SLIDES = [
@@ -320,6 +327,89 @@ export default function App() {
   const toastTimerRef = useRef(null);
   const scrollAreaRef = useRef(null);
 
+  // App Update (OTA + APK) State
+  const [appConfig, setAppConfig] = useState(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [isUpdatingOta, setIsUpdatingOta] = useState(false);
+  const [otaStatusMessage, setOtaStatusMessage] = useState('');
+  const [manualCheckLoading, setManualCheckLoading] = useState(false);
+  const [manualCheckFeedback, setManualCheckFeedback] = useState(null);
+
+  // Real-time app config & version listener (for both OTA live bundles and APK updates)
+  useEffect(() => {
+    notifyAppReady();
+
+    const unsubConfig = subscribeToAppConfig((config) => {
+      setAppConfig(config);
+      if (config && isVersionNewer(config.latestVersion, APP_VERSION)) {
+        setShowUpdateModal(true);
+      }
+      // Background Capgo Live Bundle download if available
+      if (config?.bundleUrl && config?.bundleVersion) {
+        downloadAndApplyBundle(config.bundleUrl, config.bundleVersion).then(res => {
+          if (res?.success) {
+            console.log('[Updater] Live bundle downloaded & primed for restart.');
+          }
+        }).catch(() => {});
+      }
+    });
+    return () => unsubConfig();
+  }, []);
+
+  const handleTriggerAppUpdate = async () => {
+    if (!appConfig) return;
+    
+    // 1. If OTA live bundle is provided, download and prime
+    if (appConfig.bundleUrl) {
+      setIsUpdatingOta(true);
+      setOtaStatusMessage('Downloading live web update...');
+      try {
+        const res = await downloadAndApplyBundle(appConfig.bundleUrl, appConfig.bundleVersion);
+        if (res.success) {
+          setOtaStatusMessage('Live update installed! Reloading...');
+          setTimeout(() => {
+            reloadApp();
+          }, 1200);
+          return;
+        }
+      } catch (err) {
+        console.warn('OTA bundle apply error:', err);
+      } finally {
+        setIsUpdatingOta(false);
+      }
+    }
+
+    // 2. Direct APK download / package installer trigger
+    const targetApk = appConfig.apkUrl || 'https://github.com/Hacker2022-web/NearlyY/raw/main/APKs/NearlyY.apk';
+    try {
+      window.open(targetApk, '_system');
+    } catch {
+      window.location.href = targetApk;
+    }
+  };
+
+  const handleManualCheckUpdates = async () => {
+    setManualCheckLoading(true);
+    setManualCheckFeedback(null);
+    try {
+      const config = await fetchAppConfig();
+      setAppConfig(config);
+      const isOutdated = isVersionNewer(config.latestVersion, APP_VERSION);
+      if (isOutdated) {
+        setShowUpdateModal(true);
+        setManualCheckFeedback({ type: 'update', message: `v${config.latestVersion} available!` });
+      } else {
+        setManualCheckFeedback({ type: 'success', message: 'You are on the latest version!' });
+        setTimeout(() => setManualCheckFeedback(null), 3500);
+      }
+    } catch {
+      setManualCheckFeedback({ type: 'error', message: 'Could not connect to update server' });
+      setTimeout(() => setManualCheckFeedback(null), 3000);
+    } finally {
+      setManualCheckLoading(false);
+    }
+  };
+
   // ============================================================
   // GSAP Animations
   // ============================================================
@@ -443,6 +533,10 @@ export default function App() {
 
   const navigateBack = useCallback(() => {
     // 1. Close open modals first
+    if (showUpdateModal && !appConfig?.forceUpdate) {
+      setShowUpdateModal(false);
+      return true;
+    }
     if (showChatComingSoonModal) {
       setShowChatComingSoonModal(false);
       return true;
@@ -1458,13 +1552,68 @@ export default function App() {
                     </div>
                   </Card>
 
+                  {/* App Releases & OTA Card */}
+                  <Card>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h3 className="text-base font-semibold text-slate-900">App Releases & OTA</h3>
+                        <p className="text-xs text-slate-500">Live Over-The-Air & APK updates</p>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] bg-purple-50 text-brand-700 border-brand-200">
+                        v{APP_VERSION}
+                      </Badge>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-brand-600 shrink-0">
+                          <Sparkles className="w-4 h-4" />
+                        </div>
+                        <div className="truncate">
+                          <p className="text-xs font-bold text-slate-900 truncate">
+                            {isVersionNewer(appConfig?.latestVersion, APP_VERSION) 
+                              ? `New Release: v${appConfig.latestVersion}` 
+                              : `NearlyY is Up to Date`}
+                          </p>
+                          <p className="text-[11px] text-slate-500 truncate">
+                            {isVersionNewer(appConfig?.latestVersion, APP_VERSION)
+                              ? 'Tap update to install latest build'
+                              : 'Background OTA engine running'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleManualCheckUpdates}
+                        disabled={manualCheckLoading}
+                        className="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-semibold text-xs transition-all shrink-0 flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        {manualCheckLoading ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Download className="w-3.5 h-3.5" />
+                        )}
+                        <span>{manualCheckLoading ? 'Checking...' : isVersionNewer(appConfig?.latestVersion, APP_VERSION) ? 'Update' : 'Check'}</span>
+                      </button>
+                    </div>
+
+                    {manualCheckFeedback && (
+                      <p className={`text-xs mt-2 text-center font-medium ${
+                        manualCheckFeedback.type === 'success' ? 'text-emerald-600' :
+                        manualCheckFeedback.type === 'update' ? 'text-brand-600' : 'text-red-500'
+                      }`}>
+                        {manualCheckFeedback.message}
+                      </p>
+                    )}
+                  </Card>
+
                   {/* Settings */}
                   <Card>
                     <h3 className="text-base font-semibold text-slate-900 mb-3">Settings</h3>
                     <div className="space-y-2">
                       <SettingsRow icon={Shield} title="Privacy & Security" subtitle="Manage your data" onPress={() => {}} />
                       <SettingsRow icon={HelpCircle} title="Help & Support" subtitle="FAQs, contact us" onPress={() => {}} />
-                      <SettingsRow icon={Info} title="About NearlyY" subtitle="Version 1.0.0" onPress={() => {}} />
+                      <SettingsRow icon={Info} title="About NearlyY" subtitle={`Version ${APP_VERSION} (Lohegaon Edition)`} onPress={handleManualCheckUpdates} />
                       <SettingsRow icon={LogOut} title="Sign Out" subtitle="Log out of your account" variant="danger" onPress={resetOnboarding} />
                     </div>
                   </Card>
@@ -1610,6 +1759,76 @@ export default function App() {
             >
               Save & Sync
             </button>
+          </div>
+        </Modal>
+
+        {/* UPDATE AVAILABLE MODAL (OTA Live Bundle & Direct APK Auto-Updater) */}
+        <Modal 
+          isOpen={showUpdateModal} 
+          onClose={() => {
+            if (!appConfig?.forceUpdate) setShowUpdateModal(false);
+          }} 
+          showClose={!appConfig?.forceUpdate}
+          title=""
+          className="p-5 text-center"
+        >
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-brand-500/30 mb-4 animate-bounce">
+              <Sparkles className="w-8 h-8" />
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-xs font-bold mb-2 border border-brand-200/60">
+              <span>Update Ready • v{appConfig?.latestVersion || '1.0.1'}</span>
+            </div>
+
+            <h3 className="text-xl font-extrabold text-slate-900">New NearlyY Release Ready</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-xs">
+              A newer, faster version of NearlyY is available. Installed version: <span className="font-semibold text-slate-700">v{APP_VERSION}</span>
+            </p>
+
+            {/* What's New Box */}
+            <div className="w-full text-left my-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 text-xs space-y-1.5">
+              <div className="font-bold text-slate-800 text-[11px] uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-brand-600 inline-block"></span>
+                What's New in this update:
+              </div>
+              <div className="text-slate-600 whitespace-pre-line leading-relaxed font-normal">
+                {appConfig?.changelog || "• Performance enhancements & faster loading\n• Over-the-air updates support\n• Campus vendor live sync"}
+              </div>
+            </div>
+
+            {/* Status indicator if OTA downloading */}
+            {isUpdatingOta && (
+              <div className="flex items-center gap-2 text-xs font-semibold text-brand-600 py-2">
+                <LoadingSpinner size="sm" />
+                <span>{otaStatusMessage || 'Downloading live update...'}</span>
+              </div>
+            )}
+
+            {/* Update Actions */}
+            <div className="w-full space-y-2 mt-2">
+              <button 
+                onClick={handleTriggerAppUpdate}
+                disabled={isUpdatingOta}
+                className="w-full py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-bold text-sm shadow-md shadow-brand-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Download className="w-4 h-4" />
+                <span>{appConfig?.bundleUrl ? 'Install Instant Update' : 'Update Now (Direct APK)'}</span>
+              </button>
+
+              {!appConfig?.forceUpdate && (
+                <button 
+                  onClick={() => setShowUpdateModal(false)}
+                  className="w-full py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors"
+                >
+                  Remind Me Later
+                </button>
+              )}
+            </div>
+
+            <p className="text-[10px] text-slate-400 mt-3">
+              Your student profile, bookings, and bookmarks will be kept intact.
+            </p>
           </div>
         </Modal>
       </div>
@@ -2046,44 +2265,74 @@ function PopularItemCard({ item, onPress }) {
   );
 }
 
-function ServiceCard({ item, onPress }) {
-  const itemImages = item.images || (item.coverImage ? [item.coverImage] : []);
-  const fallbackImg = item.category === 'flats' 
-    ? 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=300&auto=format&fit=crop&q=70'
-    : item.category === 'mess'
-    ? 'https://images.unsplash.com/photo-1613292443284-8d10ef9383fe?w=300&auto=format&fit=crop&q=70'
-    : item.category === 'gym'
-    ? 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300&auto=format&fit=crop&q=70'
-    : item.category === 'parties'
-    ? '/ex-ki-shaadi.jpg'
-    : 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=300&auto=format&fit=crop&q=70';
+function CardThumbnail({ item }) {
+  const [hasError, setHasError] = useState(false);
+  const images = (item.photos && item.photos.length > 0)
+    ? item.photos 
+    : (item.images && item.images.length > 0)
+    ? item.images
+    : (item.coverImage ? [item.coverImage] : []);
+  
+  const initialUrl = images[0];
+
+  const getCategoryTheme = (cat) => {
+    switch (cat) {
+      case 'flats':
+        return { icon: Home, bg: 'from-blue-50 to-indigo-100 text-blue-600 border-blue-200/50', label: 'Flats & PG' };
+      case 'mess':
+        return { icon: UtensilsCrossed, bg: 'from-amber-50 to-orange-100 text-orange-600 border-amber-200/50', label: 'Mess' };
+      case 'laundry':
+        return { icon: Shirt, bg: 'from-cyan-50 to-sky-100 text-cyan-600 border-cyan-200/50', label: 'Laundry' };
+      case 'gym':
+        return { icon: Dumbbell, bg: 'from-emerald-50 to-teal-100 text-emerald-600 border-emerald-200/50', label: 'Gym' };
+      case 'parties':
+        return { icon: Sparkles, bg: 'from-pink-50 to-purple-100 text-pink-600 border-pink-200/50', label: 'Events' };
+      default:
+        return { icon: MapPin, bg: 'from-purple-50 to-indigo-100 text-brand-600 border-purple-200/50', label: 'Local' };
+    }
+  };
+
+  const theme = getCategoryTheme(item.category);
+  const IconComp = theme.icon;
+
+  if (hasError || !initialUrl) {
+    return (
+      <div className={`relative w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-gradient-to-br ${theme.bg} border flex flex-col items-center justify-center p-2 text-center shadow-xs`}>
+        <IconComp className="w-6 h-6 mb-1 opacity-90" />
+        <span className="text-[9px] font-bold tracking-tight uppercase leading-tight">{theme.label}</span>
+      </div>
+    );
+  }
 
   return (
+    <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-100 border border-slate-100/90 shadow-xs">
+      <img 
+        src={initialUrl} 
+        alt="" 
+        className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" 
+        loading="lazy" 
+        onError={() => setHasError(true)}
+      />
+      {images.length > 1 && (
+        <span className="absolute bottom-1 right-1 bg-slate-950/75 backdrop-blur-xs text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
+          <ImageIcon className="w-2.5 h-2.5" />
+          {images.length}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function ServiceCard({ item, onPress }) {
+  return (
     <button onClick={onPress} className="service-card w-full text-left p-3.5 rounded-2xl bg-white border border-slate-100/90 shadow-xs hover:border-brand-200 hover:shadow-md active:scale-[0.99] transition-all flex items-center gap-3.5">
-      <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-100 border border-slate-100">
-        <img 
-          src={itemImages[0] || fallbackImg} 
-          alt={item.name} 
-          className="w-full h-full object-cover" 
-          loading="lazy" 
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = fallbackImg;
-          }}
-        />
-        {itemImages.length > 1 && (
-          <span className="absolute bottom-1 right-1 bg-slate-950/75 backdrop-blur-xs text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
-            <ImageIcon className="w-2.5 h-2.5" />
-            {itemImages.length}
-          </span>
-        )}
-      </div>
+      <CardThumbnail item={item} />
       <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch py-0.5">
         <div>
           <div className="flex items-start justify-between gap-2">
             <h4 className="text-sm font-bold text-slate-900 leading-snug line-clamp-1">{item.name}</h4>
             <span className="text-sm font-black text-brand-600 whitespace-nowrap shrink-0">
-              {item.priceDisplay || (item.category === 'flats' ? `₹${item.price || 6500}/mo` : item.category === 'mess' ? '₹90/thali' : 'Contact')}
+              {item.priceDisplay || (item.category === 'flats' ? `₹${item.price || 6500}/mo` : item.category === 'mess' ? '₹90/thali' : item.category === 'laundry' ? '₹80/kg' : item.category === 'gym' ? '₹999/mo' : 'Contact')}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1 truncate flex items-center gap-1">
