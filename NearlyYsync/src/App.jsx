@@ -191,6 +191,43 @@ export default function App() {
     }
   }, [showAddModal]);
 
+  // Full-screen Swipe to go back / dismiss modal
+  useEffect(() => {
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+
+    const handleTouchStart = (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startTime = Date.now();
+    };
+
+    const handleTouchEnd = (e) => {
+      if (!e.changedTouches || e.changedTouches.length !== 1) return;
+      const deltaX = e.changedTouches[0].clientX - startX;
+      const deltaY = e.changedTouches[0].clientY - startY;
+
+      if (deltaX > 65 && Math.abs(deltaY) < 80 && deltaX > Math.abs(deltaY) * 1.3) {
+        if (showMenuModal) {
+          setShowMenuModal(null);
+        } else if (showAddModal) {
+          setShowAddModal(false);
+        } else if (activeTab !== 'listings') {
+          setActiveTab('listings');
+        }
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [showMenuModal, showAddModal, activeTab]);
+
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3000);

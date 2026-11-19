@@ -79,12 +79,22 @@ const LOHEGAON_LOCALITIES = [
 ];
 
 const CORE_SERVICES = [
-  { id: 'Mess & Tiffin', name: 'Mess & Tiffin', icon: UtensilsCrossed, desc: 'Daily thalis & meals', sub: 'From ₹90/meal' },
-  { id: 'Laundry & Dry Cleaning', name: 'Laundry & Dry Cleaning', icon: Shirt, desc: 'Per-kg wash & iron', sub: 'Doorstep pickup' },
-  { id: 'Gym & Fitness', name: 'Gym & Fitness', icon: Dumbbell, desc: 'Daily passes & monthly gym', sub: 'Student discounts' },
-  { id: 'Flats & PG', name: 'Flats & PG', icon: Home, desc: 'Zero brokerage rooms & beds', sub: 'Verified owners' },
-  { id: 'Parties & Events', name: 'Parties & Events', icon: Sparkles, desc: 'Weekend bashes, DJ nights & gigs', sub: 'Passes from ₹299' }
+  { id: 'Mess & Tiffin', catKey: 'mess', name: 'Mess & Tiffin', icon: UtensilsCrossed, desc: 'Daily thalis & meals', sub: 'From ₹90/meal' },
+  { id: 'Laundry & Dry Cleaning', catKey: 'laundry', name: 'Laundry & Dry Cleaning', icon: Shirt, desc: 'Per-kg wash & iron', sub: 'Doorstep pickup' },
+  { id: 'Gym & Fitness', catKey: 'gym', name: 'Gym & Fitness', icon: Dumbbell, desc: 'Daily passes & monthly gym', sub: 'Student discounts' },
+  { id: 'Flats & PG', catKey: 'flats', name: 'Flats & PG', icon: Home, desc: 'Zero brokerage rooms & beds', sub: 'Verified owners' },
+  { id: 'Parties & Events', catKey: 'parties', name: 'Parties & Events', icon: Sparkles, desc: 'Weekend bashes, DJ nights & gigs', sub: 'Passes from ₹299' }
 ];
+
+const getCategoryKey = (idOrName) => {
+  const str = String(idOrName || '').toLowerCase();
+  if (str.includes('mess')) return 'mess';
+  if (str.includes('laundry')) return 'laundry';
+  if (str.includes('gym')) return 'gym';
+  if (str.includes('flat') || str.includes('pg')) return 'flats';
+  if (str.includes('part') || str.includes('event')) return 'parties';
+  return 'mess';
+};
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
@@ -210,7 +220,7 @@ const Modal = ({ isOpen, onClose, title, children, className = '', showClose = t
             </button>
           )}
         </div>
-        <div className="p-4 max-h-[60dvh] overflow-y-auto no-scrollbar {className}">
+        <div className={`p-4 max-h-[60dvh] overflow-y-auto no-scrollbar ${className}`}>
           {children}
         </div>
       </div>
@@ -230,7 +240,7 @@ const BottomSheet = ({ isOpen, onClose, title, children, className = '' }) => {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-4 max-h-[75dvh] overflow-y-auto no-scrollbar {className}">
+        <div className={`p-4 max-h-[75dvh] overflow-y-auto no-scrollbar ${className}`}>
           {children}
         </div>
       </div>
@@ -285,6 +295,8 @@ export default function App() {
     }
   });
   const [currentScreen, setCurrentScreen] = useState('home');
+  const [screenHistory, setScreenHistory] = useState(['home']);
+  const [swipeProgress, setSwipeProgress] = useState(0);
   const [activeCategory, setActiveCategory] = useState('mess');
   const [activeTab, setActiveTab] = useState('home');
   const [filterTag, setFilterTag] = useState('All');
@@ -423,12 +435,172 @@ export default function App() {
     return 'mess';
   };
 
+  const navigateToScreen = (screen) => {
+    if (screen === currentScreen) return;
+    setScreenHistory(prev => [...prev, screen]);
+    setCurrentScreen(screen);
+  };
+
+  const navigateBack = useCallback(() => {
+    // 1. Close open modals first
+    if (showChatComingSoonModal) {
+      setShowChatComingSoonModal(false);
+      return true;
+    }
+    if (showEditProfileModal) {
+      setShowEditProfileModal(false);
+      return true;
+    }
+
+    // 2. Onboarding flow navigation
+    if (!isOnboarded) {
+      if (onboardingStep > 1) {
+        setOnboardingStep(prev => prev - 1);
+        return true;
+      }
+      return false;
+    }
+
+    // 3. Screen history stack pop
+    if (screenHistory.length > 1) {
+      const nextHistory = [...screenHistory];
+      nextHistory.pop();
+      const prevScreen = nextHistory[nextHistory.length - 1] || 'home';
+      setScreenHistory(nextHistory);
+      setCurrentScreen(prevScreen);
+      if (prevScreen === 'home') setActiveTab('home');
+      if (prevScreen === 'profile') setActiveTab('profile');
+      return true;
+    }
+
+    // Fallback if history is single entry but user is not on home
+    if (currentScreen !== 'home') {
+      setCurrentScreen('home');
+      setActiveTab('home');
+      setScreenHistory(['home']);
+      return true;
+    }
+
+    return false;
+  }, [
+    showChatComingSoonModal,
+    showEditProfileModal,
+    isOnboarded,
+    onboardingStep,
+    screenHistory,
+    currentScreen
+  ]);
+
+  const lastBackPressRef = useRef(0);
+  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
+
+  // Android Hardware / System Back Button Listener (Capacitor)
+  useEffect(() => {
+    let backListener = null;
+
+    const setupListener = async () => {
+      try {
+        const { App: CapApp } = await import('@capacitor/app');
+        backListener = await CapApp.addListener('backButton', () => {
+          const handled = navigateBack();
+          if (!handled) {
+            const now = Date.now();
+            if (now - lastBackPressRef.current < 2000) {
+              CapApp.exitApp();
+            } else {
+              lastBackPressRef.current = now;
+              showToast('Press back again to exit NearlyY');
+            }
+          }
+        });
+      } catch (err) {
+        console.warn('Capacitor App backButton listener notice:', err);
+      }
+    };
+
+    setupListener();
+
+    return () => {
+      if (backListener && typeof backListener.remove === 'function') {
+        backListener.remove();
+      }
+    };
+  }, [navigateBack]);
+
+  // Full-screen / Edge Swipe Gesture to go back
+  useEffect(() => {
+    const handleTouchStart = (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      touchStartRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        time: Date.now()
+      };
+    };
+
+    const handleTouchMove = (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - touchStartRef.current.x;
+      const deltaY = touch.clientY - touchStartRef.current.y;
+
+      const canGoBack = Boolean(
+        showChatComingSoonModal ||
+        showEditProfileModal ||
+        (!isOnboarded && onboardingStep > 1) ||
+        (isOnboarded && currentScreen !== 'home')
+      );
+
+      // Show indicator when swiping right from left area
+      if (canGoBack && deltaX > 15 && deltaX > Math.abs(deltaY) * 1.3 && touchStartRef.current.x < 120) {
+        const progress = Math.min(Math.max((deltaX - 15) / 90, 0), 1);
+        setSwipeProgress(progress);
+      }
+    };
+
+    const handleTouchEnd = (e) => {
+      setSwipeProgress(0);
+      if (!e.changedTouches || e.changedTouches.length !== 1) return;
+      const touch = e.changedTouches[0];
+      const deltaX = touch.clientX - touchStartRef.current.x;
+      const deltaY = touch.clientY - touchStartRef.current.y;
+      const duration = Date.now() - touchStartRef.current.time;
+
+      const isHorizontalSwipe = deltaX > 60 && Math.abs(deltaY) < 90 && deltaX > Math.abs(deltaY) * 1.2;
+      const isFastFlick = deltaX > 40 && duration < 240 && Math.abs(deltaY) < 40;
+      const isValidOrigin = (touchStartRef.current.x <= Math.min(window.innerWidth * 0.45, 160)) || 
+                            (currentScreen === 'detail' || currentScreen === 'confirmed');
+
+      if ((isHorizontalSwipe || isFastFlick) && isValidOrigin) {
+        const target = document.elementFromPoint(touchStartRef.current.x, touchStartRef.current.y);
+        if (target && target.closest('input, textarea, select')) return;
+
+        const handled = navigateBack();
+        if (handled && typeof navigator !== 'undefined' && navigator.vibrate) {
+          try { navigator.vibrate(15); } catch (err) {}
+        }
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', () => setSwipeProgress(0), { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [navigateBack, showChatComingSoonModal, showEditProfileModal, isOnboarded, onboardingStep, currentScreen]);
+
   const openCategory = (catId) => {
     const normalized = getCategoryId(catId);
     setActiveCategory(normalized);
     setFilterTag('All');
     setSearchQuery('');
-    setCurrentScreen('category-list');
+    navigateToScreen('category-list');
   };
 
   const openDetail = (item) => {
@@ -436,7 +608,7 @@ export default function App() {
     setActiveImageIndex(0);
     setIsBookmarked(false);
     if (item?.category) setActiveCategory(item.category);
-    setCurrentScreen('detail');
+    navigateToScreen('detail');
   };
 
   const triggerBooking = async (title, service, phone, amount = 'Standard') => {
@@ -451,7 +623,7 @@ export default function App() {
       amount
     };
     setBookingDetails(newBooking);
-    setCurrentScreen('confirmed');
+    navigateToScreen('confirmed');
     try {
       await recordBooking(newBooking);
       showToast('Booking confirmed & synced');
@@ -647,6 +819,19 @@ export default function App() {
     <div className="w-full h-full bg-background flex flex-col items-center justify-center p-0 sm:p-2 md:p-4 font-sans antialiased selection:bg-brand-200 selection:text-brand-900 overflow-hidden">
       {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage('')} />}
 
+      {/* Visual Floating Edge Swipe-to-Back Indicator */}
+      {swipeProgress > 0 && (
+        <div 
+          className="fixed left-3 top-1/2 -translate-y-1/2 z-50 pointer-events-none flex items-center justify-center w-11 h-11 rounded-full bg-slate-900/85 backdrop-blur-md text-white shadow-2xl border border-white/20 transition-all duration-75"
+          style={{
+            opacity: Math.min(swipeProgress * 1.2, 1),
+            transform: `translateY(-50%) translateX(${swipeProgress * 14}px) scale(${0.75 + swipeProgress * 0.35})`
+          }}
+        >
+          <ArrowLeft className="w-5 h-5 text-white animate-pulse" />
+        </div>
+      )}
+
       <div className="app-shell max-w-full sm:max-w-[520px] md:max-w-[600px] bg-white sm:rounded-2xl shadow-xl flex flex-col overflow-hidden relative border-0 sm:border sm:border-slate-200/50">
         
         {!isOnboarded ? (
@@ -797,7 +982,7 @@ export default function App() {
                       {CORE_SERVICES.map((svc, idx) => (
                         <button
                           key={svc.id}
-                          onClick={() => openCategory(svc.id.toLowerCase().replace(/[&]/g, '').replace(/\s+/g, ''))}
+                          onClick={() => openCategory(svc.catKey || svc.id)}
                           className="flex flex-col items-center p-3 rounded-xl bg-white border border-slate-100 hover:border-brand-200 hover:shadow-sm active:scale-[0.98] transition-all"
                         >
                           <div className="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center mb-2">
@@ -852,7 +1037,7 @@ export default function App() {
                         {CORE_SERVICES.filter(s => userProfile.interests.includes(s.id)).slice(0, 4).map((svc) => (
                           <button
                             key={svc.id}
-                            onClick={() => openCategory(svc.id.toLowerCase().replace(/[&]/g, '').replace(/\s+/g, ''))}
+                            onClick={() => openCategory(svc.catKey || svc.id)}
                             className="p-3 rounded-xl bg-white border border-slate-100 hover:border-brand-200 hover:shadow-sm active:scale-[0.98] transition-all"
                           >
                             <div className="flex items-center gap-2">
@@ -873,7 +1058,7 @@ export default function App() {
               {currentScreen === 'category-list' && (
                 <div className="screen-content safe-content-top px-4 pb-6 space-y-4">
                   <div className="flex items-center justify-between gap-3">
-                    <IconButton onClick={() => setCurrentScreen('home')} aria-label="Back" variant="ghost" size="md">
+                    <IconButton onClick={navigateBack} aria-label="Back" variant="ghost" size="md">
                       <ArrowLeft className="w-5 h-5" />
                     </IconButton>
                     <h2 className="text-base font-semibold text-slate-900 truncate text-center flex-1 capitalize">
@@ -955,7 +1140,7 @@ export default function App() {
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent" />
                       
                       <IconButton 
-                        onClick={() => setCurrentScreen('category-list')} 
+                        onClick={navigateBack} 
                         variant="default" 
                         size="md"
                         aria-label="Back"
@@ -1172,7 +1357,7 @@ export default function App() {
                     <p className="text-xs text-slate-400">Reference: {bookingDetails?.id || 'NY-' + Date.now().toString(36).toUpperCase()}</p>
                   </div>
                   <div className="w-full space-y-2 pt-2">
-                    <button onClick={() => { setCurrentScreen('home'); setActiveTab('home'); }} className="w-full py-3.5 rounded-xl bg-brand-600 text-white font-semibold text-sm shadow-brand hover:bg-brand-700 active:bg-brand-800 transition-colors">
+                    <button onClick={navigateBack} className="w-full py-3.5 rounded-xl bg-brand-600 text-white font-semibold text-sm shadow-brand hover:bg-brand-700 active:bg-brand-800 transition-colors">
                       Back to Home
                     </button>
                     <button onClick={() => openWhatsAppCommunity()} className="w-full py-3.5 rounded-xl bg-green-600 text-white font-semibold text-sm shadow-md hover:bg-green-700 active:bg-green-800 transition-colors flex items-center justify-center gap-2">
@@ -1289,7 +1474,7 @@ export default function App() {
 
             {/* BOTTOM NAVIGATION */}
             <nav className="app-bottom-nav bg-white/95 backdrop-blur-md border-t border-slate-200/50 px-3 sm:px-5 flex items-center justify-between z-40">
-              <button onClick={() => { setCurrentScreen('home'); setActiveTab('home'); }} className={`flex flex-col items-center text-[10px] font-medium h-full justify-center px-2 transition-colors ${currentScreen === 'home' ? 'text-brand-600' : 'text-slate-400'}`}>
+              <button onClick={() => { setCurrentScreen('home'); setActiveTab('home'); setScreenHistory(['home']); }} className={`flex flex-col items-center text-[10px] font-medium h-full justify-center px-2 transition-colors ${currentScreen === 'home' ? 'text-brand-600' : 'text-slate-400'}`}>
                 <Home className="w-5 h-5" />
                 <span>Home</span>
               </button>
@@ -1302,7 +1487,7 @@ export default function App() {
                 <span>Chat</span>
                 <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-brand-600 border-2 border-white" />
               </button>
-              <button onClick={() => { setCurrentScreen('profile'); setActiveTab('profile'); }} className={`flex flex-col items-center text-[10px] font-medium h-full justify-center px-2 transition-colors ${currentScreen === 'profile' ? 'text-brand-600' : 'text-slate-400'}`}>
+              <button onClick={() => { navigateToScreen('profile'); setActiveTab('profile'); }} className={`flex flex-col items-center text-[10px] font-medium h-full justify-center px-2 transition-colors ${currentScreen === 'profile' ? 'text-brand-600' : 'text-slate-400'}`}>
                 <User className="w-5 h-5" />
                 <span>Profile</span>
               </button>
