@@ -586,7 +586,7 @@ export default function App() {
         
         {/* Toast Notification — floats above the bottom nav / sticky CTA */}
         {toastMessage && (
-          <div className="absolute bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-[999] w-max max-w-[90%] bg-[#5128E8] text-white px-4 py-2.5 rounded-full text-xs font-bold shadow-xl toast-notification-pill flex items-center space-x-2 border border-white/20">
+          <div className="absolute toast-position left-1/2 -translate-x-1/2 z-[999] w-max max-w-[90%] bg-[#5128E8] text-white px-4 py-2.5 rounded-full text-xs font-bold shadow-xl toast-notification-pill flex items-center space-x-2 border border-white/20">
             <Zap className="w-3.5 h-3.5 text-amber-300 shrink-0" />
             <span className="truncate">{toastMessage}</span>
           </div>
@@ -596,7 +596,7 @@ export default function App() {
         {/* ONBOARDING FLOW (7 STEPS)                                    */}
         {/* ============================================================ */}
         {!isOnboarded ? (
-          <div className="flex-1 min-h-0 flex flex-col justify-between gap-4 p-5 pt-[max(env(safe-area-inset-top,0px),1.25rem)] pb-[max(env(safe-area-inset-bottom,0px),1.25rem)] overflow-y-auto no-scrollbar scroll-area bg-[#F7F5FF] onboarding-step-content">
+          <div className="flex-1 min-h-0 flex flex-col justify-between gap-4 p-5 pt-[calc(var(--app-safe-top)+1rem)] pb-[calc(var(--app-safe-bottom)+1.25rem)] overflow-y-auto no-scrollbar scroll-area bg-[#F7F5FF] onboarding-step-content">
             
             
             {/* STEP 1: WELCOME SCREEN */}
@@ -1511,14 +1511,14 @@ export default function App() {
                     <button 
                       onClick={() => setCurrentScreen('category-list')} 
                       className="absolute w-9 h-9 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-slate-800 shadow-md hover:bg-white transition"
-                      style={{ top: 'max(env(safe-area-inset-top, 0px) + 0.75rem, 1rem)', left: '1rem' }}
+                      style={{ top: 'calc(var(--app-safe-top) + 0.75rem)', left: '1rem' }}
                     >
                       <ArrowLeft className="w-4 h-4" />
                     </button>
 
                     <div 
                       className="absolute flex items-center space-x-2"
-                      style={{ top: 'max(env(safe-area-inset-top, 0px) + 0.75rem, 1rem)', right: '1rem' }}
+                      style={{ top: 'calc(var(--app-safe-top) + 0.75rem)', right: '1rem' }}
                     >
                       {/* Photo counter badge */}
                       {itemImages.length > 1 && (
@@ -2256,7 +2256,7 @@ export default function App() {
             </div>
 
             {/* BOTTOM NAVIGATION BAR — flex child, always visible above safe area */}
-            <nav className="shrink-0 relative h-[calc(4rem+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)] bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 sm:px-6 flex items-center justify-between z-40">
+            <nav className="shrink-0 relative app-bottom-nav bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 sm:px-6 flex items-center justify-between z-40">
               <button 
                 onClick={() => { setCurrentScreen('home'); setActiveTab('home'); }} 
                 className={`flex flex-col items-center text-[10px] font-bold h-full justify-center px-2 transition-colors ${currentScreen === 'home' ? 'text-[#5128E8]' : 'text-slate-400'}`}

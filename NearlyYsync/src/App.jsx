@@ -500,7 +500,7 @@ export default function App() {
       <div className="w-full h-[100dvh] md:h-[94vh] md:max-h-[940px] max-w-full md:max-w-4xl lg:max-w-5xl bg-white md:rounded-3xl shadow-2xl flex flex-col overflow-hidden relative border-0 md:border md:border-slate-200/80">
         
         {/* Header */}
-        <div className="bg-white px-5 py-3 border-b border-slate-100 flex items-center justify-between sticky top-0 z-40">
+        <div className="bg-white px-5 py-3 sync-header border-b border-slate-100 flex items-center justify-between sticky top-0 z-40">
           <div className="flex items-center space-x-2.5">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center overflow-hidden shadow-[0_4px_12px_rgba(81,40,232,0.22)] bg-transparent shrink-0">
               <img 

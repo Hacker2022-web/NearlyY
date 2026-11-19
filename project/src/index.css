@@ -71,23 +71,43 @@ body {
 
 /* Safe area padding utilities for notched/pill modern devices */
 :root {
-  --sat: env(safe-area-inset-top, 0px);
-  --sab: env(safe-area-inset-bottom, 0px);
-  --sal: env(safe-area-inset-left, 0px);
-  --sar: env(safe-area-inset-right, 0px);
+  /* Capacitor's SystemBars plugin injects --safe-area-inset-* on documentElement.
+     iOS WebKit uses env(safe-area-inset-*).
+     We take the maximum of both. */
+  --sat: max(var(--safe-area-inset-top, 0px), env(safe-area-inset-top, 0px));
+  --sab: max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px));
+  --sal: max(var(--safe-area-inset-left, 0px), env(safe-area-inset-left, 0px));
+  --sar: max(var(--safe-area-inset-right, 0px), env(safe-area-inset-right, 0px));
+
+  /* Device status bar fallback: on Android edge-to-edge screens where insets
+     are 0px or still loading, status bar height is typically 38-48px. */
+  --status-bar-fallback: 44px;
+  --nav-bar-fallback: 16px;
+
+  --app-safe-top: max(var(--sat), var(--status-bar-fallback));
+  --app-safe-bottom: max(var(--sab), var(--nav-bar-fallback));
+}
+
+@media (min-width: 640px) {
+  :root {
+    --status-bar-fallback: 0px;
+    --nav-bar-fallback: 0px;
+    --app-safe-top: 0px;
+    --app-safe-bottom: 0px;
+  }
 }
 
 .safe-top {
-  padding-top: max(env(safe-area-inset-top, 0px), 12px);
+  padding-top: var(--app-safe-top);
 }
 
 .safe-bottom {
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+  padding-bottom: var(--app-safe-bottom);
 }
 
 /* Inset the top of screen content below the status bar / notch */
 .safe-content-top {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem);
+  padding-top: calc(var(--app-safe-top) + 0.75rem);
 }
 
 @media (min-width: 640px) {
@@ -96,10 +116,34 @@ body {
   }
 }
 
+/* Bottom navigation bar: account for Android gesture bar and safe bottom */
+.app-bottom-nav {
+  height: calc(4.25rem + var(--app-safe-bottom));
+  padding-bottom: var(--app-safe-bottom);
+}
+
+@media (min-width: 640px) {
+  .app-bottom-nav {
+    height: 4rem;
+    padding-bottom: 0px;
+  }
+}
+
+/* Toast notification pill: positioned cleanly above bottom navigation */
+.toast-position {
+  bottom: calc(5.25rem + var(--app-safe-bottom));
+}
+
+@media (min-width: 640px) {
+  .toast-position {
+    bottom: 5rem;
+  }
+}
+
 /* Sticky primary CTA inside scrollable onboarding steps */
 .sticky-cta {
   position: sticky;
-  bottom: max(env(safe-area-inset-bottom, 0px), 0.25rem);
+  bottom: max(var(--app-safe-bottom), 0.5rem);
   z-index: 10;
 }
 
