@@ -17,26 +17,51 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// 1. Subscribe in real time to services catalog
+// 1. Subscribe in real time to services catalog (bidirectionally synced with NearlyY)
 export function subscribeToServices(onUpdate) {
   try {
     return onSnapshot(collection(db, 'services'), (snapshot) => {
-      if (snapshot.empty) {
-        // Auto seed default Lohegaon vendors if empty
-        seedAllDefaultServices().catch(() => {});
-        const flatList = [];
-        Object.keys(CATEGORY_DATA).forEach(cat => {
-          CATEGORY_DATA[cat].forEach(item => flatList.push(item));
+      const remoteMap = new Map();
+      snapshot.docs.forEach(docSnap => {
+        remoteMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+      });
+
+      const combined = [];
+      const seenIds = new Set();
+
+      // First add all default items (overridden by remote if present, unless marked deleted)
+      Object.keys(CATEGORY_DATA).forEach(cat => {
+        (CATEGORY_DATA[cat] || []).forEach(defaultItem => {
+          seenIds.add(defaultItem.id);
+          if (remoteMap.has(defaultItem.id)) {
+            const remoteItem = remoteMap.get(defaultItem.id);
+            if (!remoteItem._deleted) {
+              combined.push({ ...defaultItem, ...remoteItem });
+            }
+          } else {
+            combined.push(defaultItem);
+          }
         });
-        return onUpdate(flatList);
+      });
+
+      // Then add any custom vendor items added via NearlyYsync that aren't in defaults
+      remoteMap.forEach((item, id) => {
+        if (!seenIds.has(id) && !item._deleted) {
+          combined.push(item);
+        }
+      });
+
+      onUpdate(combined);
+
+      // Auto-seed missing defaults to Firestore so cloud database is always complete
+      if (snapshot.size < 15) {
+        seedAllDefaultServices().catch(() => {});
       }
-      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      onUpdate(list);
     }, (err) => {
       console.warn("Services snapshot error (fallback):", err.message);
       const flatList = [];
       Object.keys(CATEGORY_DATA).forEach(cat => {
-        CATEGORY_DATA[cat].forEach(item => flatList.push(item));
+        (CATEGORY_DATA[cat] || []).forEach(item => flatList.push(item));
       });
       onUpdate(flatList);
     });
@@ -49,17 +74,41 @@ export function subscribeToServices(onUpdate) {
 export async function fetchServicesFromFirebase() {
   try {
     const snapshot = await getDocs(collection(db, 'services'));
-    if (!snapshot.empty) {
-      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    }
+    const remoteMap = new Map();
+    snapshot.docs.forEach(d => remoteMap.set(d.id, { id: d.id, ...d.data() }));
+
+    const combined = [];
+    const seenIds = new Set();
+
+    Object.keys(CATEGORY_DATA).forEach(cat => {
+      (CATEGORY_DATA[cat] || []).forEach(defaultItem => {
+        seenIds.add(defaultItem.id);
+        if (remoteMap.has(defaultItem.id)) {
+          const remoteItem = remoteMap.get(defaultItem.id);
+          if (!remoteItem._deleted) {
+            combined.push({ ...defaultItem, ...remoteItem });
+          }
+        } else {
+          combined.push(defaultItem);
+        }
+      });
+    });
+
+    remoteMap.forEach((item, id) => {
+      if (!seenIds.has(id) && !item._deleted) {
+        combined.push(item);
+      }
+    });
+
+    return combined;
   } catch (err) {
     console.warn("fetchServicesFromFirebase error:", err.message);
+    const flatList = [];
+    Object.keys(CATEGORY_DATA).forEach(cat => {
+      (CATEGORY_DATA[cat] || []).forEach(item => flatList.push(item));
+    });
+    return flatList;
   }
-  const flatList = [];
-  Object.keys(CATEGORY_DATA).forEach(cat => {
-    CATEGORY_DATA[cat].forEach(item => flatList.push(item));
-  });
-  return flatList;
 }
 
 // 2. Add a new service listing (Mess, Laundry, Gym, Flat)
@@ -98,7 +147,11 @@ export async function updateServiceListing(id, updates) {
 // 4. Delete a service listing
 export async function deleteServiceListing(id) {
   try {
-    await deleteDoc(doc(db, 'services', id));
+    // Write tombstone so deleted items (both defaults and custom) disappear immediately from all apps
+    await setDoc(doc(db, 'services', id), {
+      _deleted: true,
+      deletedAt: new Date().toISOString()
+    }, { merge: true });
     return { success: true };
   } catch (err) {
     console.error("Error deleting service:", err);

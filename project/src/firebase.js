@@ -33,29 +33,52 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
-// Real-time listener for services catalog
+// Real-time listener for services catalog (bidirectionally synced with NearlyYsync)
 export function subscribeToServices(onUpdate) {
   try {
     return onSnapshot(collection(db, 'services'), (snapshot) => {
-      if (snapshot.empty) {
-        // Auto-seed if remote Firestore collection is empty
-        seedFirestore().catch(() => {});
-        return onUpdate(CATEGORY_DATA);
-      }
-      const remote = { mess: [], laundry: [], gym: [], flats: [], parties: [] };
-      snapshot.docs.forEach(d => {
-        const item = { id: d.id, ...d.data() };
-        if (remote[item.category]) {
-          remote[item.category].push(item);
+      // Build map of remote items from Firestore
+      const remoteMap = new Map();
+      snapshot.docs.forEach(docSnap => {
+        remoteMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+      });
+
+      const categorized = { mess: [], laundry: [], gym: [], flats: [], parties: [] };
+      const seenIds = new Set();
+
+      // 1. Fill base categories from CATEGORY_DATA merged with remote Firestore overrides
+      Object.keys(CATEGORY_DATA).forEach(cat => {
+        if (!categorized[cat]) categorized[cat] = [];
+        (CATEGORY_DATA[cat] || []).forEach(defaultItem => {
+          seenIds.add(defaultItem.id);
+          if (remoteMap.has(defaultItem.id)) {
+            const remoteItem = remoteMap.get(defaultItem.id);
+            if (!remoteItem._deleted) {
+              categorized[cat].push({ ...defaultItem, ...remoteItem });
+            }
+          } else {
+            categorized[cat].push(defaultItem);
+          }
+        });
+      });
+
+      // 2. Add any custom items added in NearlyYsync (like Pakpalak!)
+      remoteMap.forEach((item, id) => {
+        if (!seenIds.has(id) && !item._deleted) {
+          const cat = item.category || 'mess';
+          if (categorized[cat]) {
+            // New user listings placed at top of category feed
+            categorized[cat].unshift(item);
+          }
         }
       });
-      // Ensure all categories have at least mock data if remote category was empty
-      for (const cat of ['mess', 'laundry', 'gym', 'flats', 'parties']) {
-        if (!remote[cat] || remote[cat].length === 0) {
-          remote[cat] = CATEGORY_DATA[cat] || [];
-        }
+
+      // If remote collection has few/no documents, auto-seed all default services to Firestore
+      if (snapshot.size < 15) {
+        seedFirestore().catch(() => {});
       }
-      onUpdate(remote);
+
+      onUpdate(categorized);
     }, (err) => {
       console.warn("Firestore services snapshot notice (using local data):", err.message);
       onUpdate(CATEGORY_DATA);

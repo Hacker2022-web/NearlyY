@@ -1739,28 +1739,57 @@ function PopularItemCard({ item, onPress }) {
 
 function ServiceCard({ item, onPress }) {
   const itemImages = item.images || (item.coverImage ? [item.coverImage] : []);
+  const fallbackImg = item.category === 'flats' 
+    ? 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=300&auto=format&fit=crop&q=70'
+    : item.category === 'mess'
+    ? 'https://images.unsplash.com/photo-1613292443284-8d10ef9383fe?w=300&auto=format&fit=crop&q=70'
+    : item.category === 'gym'
+    ? 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300&auto=format&fit=crop&q=70'
+    : item.category === 'parties'
+    ? '/ex-ki-shaadi.jpg'
+    : 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=300&auto=format&fit=crop&q=70';
+
   return (
-    <button onClick={onPress} className="service-card p-3 rounded-xl bg-white border border-slate-100 hover:border-brand-200 hover:shadow-sm active:scale-[0.99] transition-all flex gap-3">
-      <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-100">
-        <img src={itemImages[0] || 'https://images.unsplash.com/photo-1613292443284-8d10ef9383fe?w=200&auto=format&fit=crop&q=60'} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+    <button onClick={onPress} className="service-card w-full text-left p-3.5 rounded-2xl bg-white border border-slate-100/90 shadow-xs hover:border-brand-200 hover:shadow-md active:scale-[0.99] transition-all flex items-center gap-3.5">
+      <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-100 border border-slate-100">
+        <img 
+          src={itemImages[0] || fallbackImg} 
+          alt={item.name} 
+          className="w-full h-full object-cover" 
+          loading="lazy" 
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = fallbackImg;
+          }}
+        />
         {itemImages.length > 1 && (
-          <span className="absolute bottom-1 right-1 bg-slate-950/75 text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
-            <ImageIcon className="w-3 h-3" />
+          <span className="absolute bottom-1 right-1 bg-slate-950/75 backdrop-blur-xs text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
+            <ImageIcon className="w-2.5 h-2.5" />
             {itemImages.length}
           </span>
         )}
       </div>
-      <div className="flex-1 min-w-0 flex flex-col justify-between">
+      <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch py-0.5">
         <div>
           <div className="flex items-start justify-between gap-2">
-            <h4 className="text-sm font-semibold text-slate-900 leading-snug">{item.name}</h4>
-            <span className="text-sm font-bold text-brand-600 whitespace-nowrap shrink-0">{item.priceDisplay || (item.category === 'flats' ? `₹${item.price}/mo` : 'Contact')}</span>
+            <h4 className="text-sm font-bold text-slate-900 leading-snug line-clamp-1">{item.name}</h4>
+            <span className="text-sm font-black text-brand-600 whitespace-nowrap shrink-0">
+              {item.priceDisplay || (item.category === 'flats' ? `₹${item.price || 6500}/mo` : item.category === 'mess' ? '₹90/thali' : 'Contact')}
+            </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1 truncate">{item.venue || item.locality}</p>
+          <p className="text-xs text-slate-500 mt-1 truncate flex items-center gap-1">
+            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+            {item.venue || item.locality || 'Lohegaon, Pune'}
+          </p>
         </div>
-        <div className="flex items-center gap-2 pt-2">
-          {item.verified && <Badge variant="success" className="text-[10px]">Verified</Badge>}
-          {item.tags && item.tags.slice(0, 2).map((tag) => <Badge key={tag} variant="outline" className="text-[10px]">{tag}</Badge>)}
+        <div className="flex items-center gap-1.5 pt-2 flex-wrap">
+          {item.verified !== false && <Badge variant="success" className="text-[10px] px-1.5 py-0.5">Verified</Badge>}
+          {item.tags && item.tags.slice(0, 2).map((tag) => (
+            <Badge key={tag} variant="outline" className="text-[10px] px-1.5 py-0.5 text-slate-600 border-slate-200">{tag}</Badge>
+          ))}
+          {(!item.tags || item.tags.length === 0) && item.sharing && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 text-slate-600 border-slate-200">{item.sharing}</Badge>
+          )}
         </div>
       </div>
     </button>

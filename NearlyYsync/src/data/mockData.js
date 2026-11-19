@@ -388,7 +388,7 @@ export const CATEGORY_DATA = {
       propertyType: 'Double Sharing PG',
       distance: '1.2 km away',
       brokerage: 'Zero Brokerage',
-      coverImage: 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef4?w=800&auto=format&fit=crop&q=80',
+      coverImage: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=800&auto=format&fit=crop&q=80',
       phone: '919876543214',
       tags: ['AC Included', 'Meals Included', 'Power Backup'],
       amenities: [
@@ -405,7 +405,7 @@ export const CATEGORY_DATA = {
         'Cleanliness inspection weekly'
       ],
       photos: [
-        'https://images.unsplash.com/photo-1540518614846-7ede433c4ef4?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=800&auto=format&fit=crop&q=80',
       ]
     },
     {
@@ -422,7 +422,7 @@ export const CATEGORY_DATA = {
       propertyType: '1BHK Flat',
       distance: '1.5 km away',
       brokerage: 'Zero Brokerage',
-      coverImage: 'https://images.unsplash.com/photo-1502005229762-ee1b2b8ab98f?w=800&auto=format&fit=crop&q=80',
+      coverImage: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop&q=80',
       phone: '919876543215',
       tags: ['Private Flat', 'No Curfew', 'Car Parking'],
       amenities: [
@@ -438,7 +438,7 @@ export const CATEGORY_DATA = {
         'Deposit refundable within 48h of move-out'
       ],
       photos: [
-        'https://images.unsplash.com/photo-1502005229762-ee1b2b8ab98f?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop&q=80',
       ]
     },
     {

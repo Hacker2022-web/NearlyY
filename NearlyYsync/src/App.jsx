@@ -542,14 +542,20 @@ export default function App() {
           </div>
           <button 
             onClick={async () => {
-              await fetchServicesFromFirebase();
-              showToast('Refreshed all listings from Cloud! ⚡');
+              try {
+                await seedAllDefaultServices();
+                const fresh = await fetchServicesFromFirebase();
+                if (fresh && fresh.length > 0) setServices(fresh);
+                showToast('Synced all listings with NearlyY Cloud! ⚡');
+              } catch (e) {
+                showToast('Sync completed');
+              }
             }} 
-            className="text-[10px] text-[#5128E8] hover:text-[#421DC7] flex items-center space-x-1 font-bold"
-            title="Refresh listings from Cloud"
+            className="text-[10px] text-[#5128E8] hover:text-[#421DC7] flex items-center space-x-1 font-bold active:scale-95 transition-transform"
+            title="Sync and refresh all listings with Cloud"
           >
             <RefreshCw className="w-3 h-3" />
-            <span>Refresh</span>
+            <span>Sync Cloud</span>
           </button>
         </div>
 
