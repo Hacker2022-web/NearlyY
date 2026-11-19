@@ -1,29 +1,80 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-50: #F7F5FF;
-  --color-brand-100: #EAE5FF;
-  --color-brand-200: #D5CDFF;
-  --color-brand-300: #B8A8FF;
-  --color-brand-400: #9475FF;
-  --color-brand-500: #6C47FF;
-  --color-brand-600: #5128E8;
-  --color-brand-700: #421DC7;
-  --color-brand-800: #3517A1;
-  --color-brand-900: #29127E;
+  --color-brand-50: #FAF8FF;
+  --color-brand-100: #F0EBFF;
+  --color-brand-200: #E0D9FF;
+  --color-brand-300: #C7BBFF;
+  --color-brand-400: #A892FF;
+  --color-brand-500: #8B6BFF;
+  --color-brand-600: #7448E8;
+  --color-brand-700: #5D34C7;
+  --color-brand-800: #4A2AA1;
+  --color-brand-900: #3D227E;
+
+  --color-surface: #FFFFFF;
+  --color-surface-elevated: #FFFFFF;
+  --color-background: #F7F5FF;
+  --color-background-secondary: #EAE5FF;
+
+  --color-text-primary: #1A1A2E;
+  --color-text-secondary: #6B6B80;
+  --color-text-tertiary: #9A9AA8;
+  --color-text-inverse: #FFFFFF;
+
+  --color-border-light: #E8E6F0;
+  --color-border-medium: #D0CDDC;
+  --color-border-focus: #7448E8;
+
+  --shadow-sm: 0 1px 2px rgba(26, 26, 46, 0.04), 0 1px 1px rgba(26, 26, 46, 0.03);
+  --shadow-md: 0 4px 12px rgba(26, 26, 46, 0.06), 0 2px 4px rgba(26, 26, 46, 0.04);
+  --shadow-lg: 0 12px 28px rgba(26, 26, 46, 0.08), 0 4px 8px rgba(26, 26, 46, 0.05);
+  --shadow-xl: 0 20px 40px rgba(26, 26, 46, 0.1), 0 8px 16px rgba(26, 26, 46, 0.06);
+  --shadow-brand: 0 8px 24px rgba(116, 72, 232, 0.18), 0 4px 8px rgba(116, 72, 232, 0.1);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  --spacing-0: 0;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-10: 40px;
+  --spacing-12: 48px;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+
+  --text-xs: 0.7rem;    /* 11px */
+  --text-sm: 0.8125rem; /* 13px */
+  --text-base: 0.9375rem; /* 15px */
+  --text-lg: 1.0625rem;  /* 17px */
+  --text-xl: 1.25rem;    /* 20px */
+  --text-2xl: 1.5rem;    /* 24px */
+  --text-3xl: 1.875rem;  /* 30px */
+
+  --transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @utility no-scrollbar {
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  &::-webkit-scrollbar { display: none; }
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-/* ------------------------------------------------------------------ */
-/* Mobile-first base: fill the device viewport exactly, no body scroll */
-/* ------------------------------------------------------------------ */
+/* ============================================================ */
+/* Mobile-first base: exact viewport, no body scroll */
+/* ============================================================ */
 html {
   height: 100%;
   -webkit-text-size-adjust: 100%;
@@ -31,8 +82,8 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: #F7F5FF;
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   overscroll-behavior: none;
@@ -41,18 +92,19 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-#root {
-  height: 100%;
-  width: 100%;
-}
+#root { height: 100%; width: 100%; }
 
-/* App shell: exact viewport height on phones, fallbacks for old WebViews */
+/* App shell: exact viewport height on phones */
 .app-shell {
   height: 100vh;
   height: 100dvh;
   width: 100%;
+  background: var(--color-surface);
 }
 
 @media (min-width: 640px) {
@@ -60,27 +112,23 @@ body {
     height: 94vh;
     height: 94dvh;
     max-height: 920px;
+    border-radius: 0;
   }
 }
 
-/* Internal scroll area: momentum scrolling + containment */
+/* Internal scroll area */
 .scroll-area {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
 
-/* Safe area padding utilities for notched/pill modern devices */
+/* Safe area CSS variables */
 :root {
-  /* Capacitor's SystemBars plugin injects --safe-area-inset-* on documentElement.
-     iOS WebKit uses env(safe-area-inset-*).
-     We take the maximum of both. */
   --sat: max(var(--safe-area-inset-top, 0px), env(safe-area-inset-top, 0px));
   --sab: max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px));
   --sal: max(var(--safe-area-inset-left, 0px), env(safe-area-inset-left, 0px));
   --sar: max(var(--safe-area-inset-right, 0px), env(safe-area-inset-right, 0px));
 
-  /* Device status bar fallback: on Android edge-to-edge screens where insets
-     are 0px or still loading, status bar height is typically 38-48px. */
   --status-bar-fallback: 44px;
   --nav-bar-fallback: 16px;
 
@@ -97,26 +145,16 @@ body {
   }
 }
 
-.safe-top {
-  padding-top: var(--app-safe-top);
-}
-
-.safe-bottom {
-  padding-bottom: var(--app-safe-bottom);
-}
-
-/* Inset the top of screen content below the status bar / notch */
-.safe-content-top {
-  padding-top: calc(var(--app-safe-top) + 0.75rem);
-}
+/* Safe area utilities */
+.safe-top { padding-top: var(--app-safe-top); }
+.safe-bottom { padding-bottom: var(--app-safe-bottom); }
+.safe-content-top { padding-top: calc(var(--app-safe-top) + 0.75rem); }
 
 @media (min-width: 640px) {
-  .safe-content-top {
-    padding-top: 1.25rem;
-  }
+  .safe-content-top { padding-top: 1.25rem; }
 }
 
-/* Bottom navigation bar: account for Android gesture bar and safe bottom */
+/* Bottom navigation */
 .app-bottom-nav {
   height: calc(4.25rem + var(--app-safe-bottom));
   padding-bottom: var(--app-safe-bottom);
@@ -129,43 +167,63 @@ body {
   }
 }
 
-/* Toast notification pill: positioned cleanly above bottom navigation */
+/* Toast position */
 .toast-position {
   bottom: calc(5.25rem + var(--app-safe-bottom));
 }
 
 @media (min-width: 640px) {
-  .toast-position {
-    bottom: 5rem;
-  }
+  .toast-position { bottom: 5rem; }
 }
 
-/* Sticky primary CTA inside scrollable onboarding steps */
+/* Sticky CTA */
 .sticky-cta {
   position: sticky;
   bottom: max(var(--app-safe-bottom), 0.5rem);
   z-index: 10;
 }
 
-/* GSAP animation performance helpers */
+/* Animation performance */
 .hero-slide,
 .service-card,
 .detail-view-container,
 .service-tab,
 .home-section,
-.screen-content {
+.screen-content,
+.modal-panel {
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
 
-/* Respect users who prefer reduced motion */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
 }
+
+/* Focus visible */
+*:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: var(--color-brand-200);
+  color: var(--color-brand-900);
+}
+
+/* Image rendering */
+img { max-width: 100%; height: auto; display: block; }
+
+/* Input styles */
+input, textarea, select {
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+}
+input::placeholder, textarea::placeholder { color: var(--color-text-tertiary); }
