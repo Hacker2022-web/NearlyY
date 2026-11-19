@@ -135,8 +135,23 @@ export async function syncUserProfile(profile) {
   }
 }
 
+// Fetch a user profile from Firestore by email
+export async function fetchUserProfile(email) {
+  if (!email) return null;
+  try {
+    const userId = email.replace(/[^a-zA-Z0-9_]/g, '_');
+    const docSnap = await getDoc(doc(db, 'users', userId));
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() };
+    }
+  } catch (err) {
+    console.warn("[Auth] fetchUserProfile notice:", err.message);
+  }
+  return null;
+}
+
 // Real-time Google Authentication via Firebase Auth
-// Strictly platform-split: Native Credential Manager on APK/iOS, Popup only on Web
+// Strictly platform-split: Native Google Sign-In on APK/iOS, Popup on Web
 export async function signInWithGoogle() {
   const isNative = Capacitor.isNativePlatform();
   const platform = Capacitor.getPlatform();
@@ -146,28 +161,43 @@ export async function signInWithGoogle() {
     let user;
 
     if (isNative) {
-      // ── STRICT NATIVE PATH: NEVER calls popup or redirect ──
+      // ── STRICT NATIVE PATH ──
       const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
-      console.log("[Auth] Triggering native Google Sign-In via Credential Manager...");
-      const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
+      console.log("[Auth] Triggering native Google Sign-In...");
 
-      const idToken = result.credential?.idToken;
+      let result;
+      try {
+        // Try modern Credential Manager first
+        result = await FirebaseAuthentication.signInWithGoogle({ 
+          skipNativeAuth: true, 
+          useCredentialManager: true 
+        });
+      } catch (credErr) {
+        console.warn("[Auth] Credential Manager returned error, falling back to GoogleSignInClient:", credErr?.message);
+        // Fallback to traditional Google Play Services Account Picker
+        result = await FirebaseAuthentication.signInWithGoogle({ 
+          skipNativeAuth: true, 
+          useCredentialManager: false 
+        });
+      }
+
+      const idToken = result?.credential?.idToken || result?.idToken;
       if (!idToken) {
         throw new Error('Native Google Sign-In returned no ID token. Please verify Google Play Services.');
       }
 
       console.log("[Auth] Native ID token received, signing into Firebase JS SDK with credential...");
-      const credential = GoogleAuthProvider.credential(idToken, result.credential.accessToken);
+      const credential = GoogleAuthProvider.credential(idToken, result?.credential?.accessToken || result?.accessToken);
       const fbResult = await signInWithCredential(auth, credential);
       user = fbResult.user;
     } else {
-      // ── STRICT WEB PATH: Desktop / mobile browser only ──
+      // ── STRICT WEB PATH: Desktop / mobile browser ──
       console.log("[Auth] Triggering standard Web signInWithPopup...");
       const result = await signInWithPopup(auth, googleProvider);
       user = result.user;
     }
 
-    const profile = {
+    const baseProfile = {
       uid: user?.uid || `user_${Date.now()}`,
       name: user?.displayName || 'Student',
       email: user?.email || '',
@@ -175,15 +205,35 @@ export async function signInWithGoogle() {
       provider: 'google',
       lastLogin: new Date().toISOString()
     };
-    await syncUserProfile(profile);
-    console.log("[Auth] User profile synchronized successfully for:", profile.email);
-    return { success: true, user: profile };
+
+    // Check if user already exists in Firestore
+    const existingCloudProfile = await fetchUserProfile(baseProfile.email);
+    const isExisting = Boolean(existingCloudProfile && (existingCloudProfile.onboarded || existingCloudProfile.college));
+
+    const finalProfile = {
+      ...baseProfile,
+      ...(existingCloudProfile || {})
+    };
+
+    await syncUserProfile(finalProfile);
+    console.log("[Auth] User profile synchronized successfully for:", finalProfile.email);
+    return { 
+      success: true, 
+      user: finalProfile, 
+      isExistingUser: isExisting 
+    };
   } catch (error) {
     console.error(`[Auth] Sign-in error on platform=${platform}:`, error?.code, error?.message);
+    const msg = String(error?.message || '').toLowerCase();
+    const isCancelled = msg.includes('cancel') || msg.includes('16') || error?.code === 'auth/popup-closed-by-user';
+
     return { 
       success: false, 
+      cancelled: isCancelled,
       code: error?.code || 'auth/unknown', 
-      message: error?.message || 'Google sign-in failed' 
+      message: isCancelled 
+        ? 'Sign in was cancelled.' 
+        : (error?.message || 'Google sign-in failed. Try Quick Student Entry.') 
     };
   }
 }
