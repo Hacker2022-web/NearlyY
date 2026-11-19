@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { 
   UtensilsCrossed, Shirt, Dumbbell, Home, ArrowRight, Bell, Search, Star, 
@@ -87,6 +87,16 @@ const CORE_SERVICES = [
   { id: 'Parties & Events', name: 'Parties & Events', icon: Sparkles, desc: 'Weekend bashes, DJ nights & gigs', sub: 'Passes from ₹299' }
 ];
 
+// Respect OS-level reduced motion preference for all GSAP animations
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Safe first-name / locality helpers (profile fields may be empty)
+const firstNameOf = (name) => String(name || 'Student').trim().split(/\s+/)[0] || 'Student';
+const shortLocalityOf = (loc) => String(loc || 'Lohegaon').split(',')[0];
+
 export default function App() {
   // Onboarding & Auth States
   const [isOnboarded, setIsOnboarded] = useState(() => {
@@ -169,17 +179,21 @@ export default function App() {
     return () => clearInterval(interval);
   }, [onboardingStep, isOnboarded]);
 
-  // GSAP: Animate hero carousel slide transitions
+  // GSAP: Cross-fade hero carousel slides (both incoming and outgoing)
   useEffect(() => {
     const slides = document.querySelectorAll('.hero-slide');
     if (slides.length === 0) return;
+    if (prefersReducedMotion()) return;
+
     slides.forEach((slide, idx) => {
-      const isActive = idx === heroSlideIndex;
-      if (isActive) {
-        gsap.fromTo(slide,
-          { scale: 1.05, opacity: 0, filter: 'blur(4px)' },
-          { scale: 1, opacity: 1, filter: 'blur(0px)', duration: 0.6, ease: 'power3.out' }
+      if (idx === heroSlideIndex) {
+        gsap.fromTo(
+          slide,
+          { autoAlpha: 0, scale: 1.06 },
+          { autoAlpha: 1, scale: 1, duration: 0.7, ease: 'power3.out', overwrite: 'auto', clearProps: 'transform' }
         );
+      } else {
+        gsap.to(slide, { autoAlpha: 0, duration: 0.45, ease: 'power2.out', overwrite: 'auto' });
       }
     });
   }, [heroSlideIndex]);
@@ -226,65 +240,136 @@ export default function App() {
 
   // GSAP: Animate onboarding step change
   useEffect(() => {
-    if (!isOnboarded) {
+    if (isOnboarded || prefersReducedMotion()) return;
+    const ctx = gsap.context(() => {
       gsap.fromTo('.onboarding-step-content',
-        { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.35, ease: 'power2.out' }
+        { y: 18, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out', clearProps: 'transform,opacity' }
       );
-    }
+    });
+    return () => ctx.revert();
   }, [onboardingStep, isOnboarded]);
 
-  // GSAP: Animate service cards on category change
+  // GSAP: Stagger the home dashboard sections into view
   useEffect(() => {
-    if (currentScreen === 'home') {
+    if (currentScreen !== 'home' || !isOnboarded || prefersReducedMotion()) return;
+    const raf = requestAnimationFrame(() => {
+      gsap.fromTo('.home-section',
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.45, stagger: 0.06, ease: 'power3.out', clearProps: 'transform,opacity' }
+      );
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [currentScreen, isOnboarded]);
+
+  // GSAP: Animate category list cards + tabs once they are painted
+  useEffect(() => {
+    if (currentScreen !== 'category-list' || prefersReducedMotion()) return;
+    const raf = requestAnimationFrame(() => {
       gsap.fromTo('.service-card',
         { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.3, stagger: 0.04, ease: 'power2.out' }
+        { y: 0, opacity: 1, duration: 0.32, stagger: 0.05, ease: 'power2.out', clearProps: 'transform,opacity' }
       );
-    }
-  }, [activeCategory, currentScreen]);
+      gsap.fromTo('.service-tab',
+        { scale: 0.92 },
+        { scale: 1, duration: 0.25, stagger: 0.03, ease: 'back.out(2)', clearProps: 'transform' }
+      );
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [currentScreen, activeCategory]);
 
   // GSAP: Animate detail view on open
   useEffect(() => {
-    if (currentScreen === 'detail') {
+    if (currentScreen !== 'detail' || prefersReducedMotion()) return;
+    const raf = requestAnimationFrame(() => {
       gsap.fromTo('.detail-view-container',
-        { y: 24, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.35, ease: 'power3.out' }
+        { y: 22, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out', clearProps: 'transform,opacity' }
       );
-    }
+      gsap.fromTo('.detail-hero-img',
+        { scale: 1.08 },
+        { scale: 1, duration: 0.7, ease: 'power3.out', clearProps: 'transform' }
+      );
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [currentScreen, selectedItem]);
+
+  // GSAP: Fade in confirmed / profile screens
+  useEffect(() => {
+    if (!['confirmed', 'profile'].includes(currentScreen) || prefersReducedMotion()) return;
+    const raf = requestAnimationFrame(() => {
+      gsap.fromTo('.screen-content',
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.35, ease: 'power3.out', clearProps: 'transform,opacity' }
+      );
+    });
+    return () => cancelAnimationFrame(raf);
   }, [currentScreen]);
+
+  // GSAP: Animate chat modal entrance
+  useEffect(() => {
+    if (!showChatComingSoonModal || prefersReducedMotion()) return;
+    const raf = requestAnimationFrame(() => {
+      gsap.fromTo('.chat-modal-backdrop', { opacity: 0 }, { opacity: 1, duration: 0.2, ease: 'power1.out' });
+      gsap.fromTo('.chat-modal-panel',
+        { y: 28, scale: 0.95, opacity: 0 },
+        { y: 0, scale: 1, opacity: 1, duration: 0.35, ease: 'back.out(1.5)', clearProps: 'transform,opacity' }
+      );
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [showChatComingSoonModal]);
+
+  // GSAP: Animate edit profile modal entrance
+  useEffect(() => {
+    if (!showEditProfileModal || prefersReducedMotion()) return;
+    const raf = requestAnimationFrame(() => {
+      gsap.fromTo('.edit-modal-backdrop', { opacity: 0 }, { opacity: 1, duration: 0.2, ease: 'power1.out' });
+      gsap.fromTo('.edit-modal-panel',
+        { y: 28, scale: 0.95, opacity: 0 },
+        { y: 0, scale: 1, opacity: 1, duration: 0.35, ease: 'back.out(1.5)', clearProps: 'transform,opacity' }
+      );
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [showEditProfileModal]);
 
   // GSAP: Animate toast alerts
   useEffect(() => {
-    if (toastMessage) {
+    if (!toastMessage || prefersReducedMotion()) return;
+    const raf = requestAnimationFrame(() => {
       gsap.fromTo('.toast-notification-pill',
-        { y: -20, scale: 0.9, opacity: 0 },
-        { y: 0, scale: 1, opacity: 1, duration: 0.28, ease: 'back.out(1.6)' }
+        { y: 16, scale: 0.92, opacity: 0 },
+        { y: 0, scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(1.6)', clearProps: 'transform,opacity' }
       );
-    }
+    });
+    return () => cancelAnimationFrame(raf);
   }, [toastMessage]);
 
+  const toastTimerRef = useRef(null);
+
   const showToast = (msg) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 3000);
+    toastTimerRef.current = setTimeout(() => setToastMessage(''), 3000);
   };
+
+  // Clear any pending toast timer on unmount
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
 
   const openCategory = (catId) => {
     setActiveCategory(catId);
     setFilterTag('All');
     setSearchQuery('');
     setCurrentScreen('category-list');
-    // GSAP: Animate category tab switch
-    gsap.fromTo('.service-tab',
-      { scale: 0.95, opacity: 0.7 },
-      { scale: 1, opacity: 1, duration: 0.2, ease: 'power2.out' },
-      false
-    );
   };
 
   const openDetail = (item) => {
     setSelectedItem(item);
     setActiveImageIndex(0);
+    setIsBookmarked(false); // bookmark state must not leak between listings
+    // Keep "back" pointing at the list this item actually belongs to
+    if (item?.category) setActiveCategory(item.category);
     setCurrentScreen('detail');
   };
 
@@ -293,18 +378,24 @@ export default function App() {
       title,
       service,
       phone: phone || '919876543210',
-      userEmail: userProfile.email,
-      userName: userProfile.name,
-      userCollege: userProfile.college,
-      locality: userProfile.subLocality,
+      userEmail: userProfile?.email || '',
+      userName: userProfile?.name || '',
+      userCollege: userProfile?.college || '',
+      locality: userProfile?.subLocality || '',
       amount
     };
+    // Confirm instantly — the UX must never depend on the network
     setBookingDetails(newBooking);
     setCurrentScreen('confirmed');
-    
-    // Save to Firebase Firestore in real time
-    await recordBooking(newBooking);
-    showToast('Saved & Synced to Firebase!');
+
+    // Save to Firestore; recordBooking already persists locally first
+    try {
+      await recordBooking(newBooking);
+      showToast('Saved & Synced to Firebase!');
+    } catch (err) {
+      console.warn('Booking sync failed, saved locally:', err);
+      showToast('Booking saved on this device');
+    }
   };
 
   const WHATSAPP_COMMUNITY_URL = 'https://chat.whatsapp.com/JZdcBHTtdGm3jSxSMyVwUh';
@@ -326,13 +417,17 @@ export default function App() {
   };
 
   const handleOpenChat = (source = 'Bottom Navigation') => {
-    // Log user chat inquiry to Firestore
-    recordInquiry({
-      userEmail: userProfile?.email || '',
-      userName: userProfile?.name || '',
-      source,
-      note: 'User clicked chat / WhatsApp group: https://chat.whatsapp.com/JZdcBHTtdGm3jSxSMyVwUh'
-    });
+    // Log user chat inquiry to Firestore (fire-and-forget; never blocks the UI)
+    try {
+      recordInquiry({
+        userEmail: userProfile?.email || '',
+        userName: userProfile?.name || '',
+        source,
+        note: 'User clicked chat / WhatsApp group: https://chat.whatsapp.com/JZdcBHTtdGm3jSxSMyVwUh'
+      });
+    } catch (err) {
+      console.warn('Inquiry logging skipped:', err);
+    }
     // Open the official WhatsApp Community directly
     openWhatsAppCommunity();
     // Also show modal so user can re-access or see details
@@ -342,12 +437,16 @@ export default function App() {
 
   const handleNotifyChat = async () => {
     setIsNotifiedForChat(true);
-    await recordInquiry({
-      userEmail: userProfile?.email || '',
-      userName: userProfile?.name || '',
-      source: 'Chat Coming Soon Modal',
-      wantsEarlyAccess: true
-    });
+    try {
+      await recordInquiry({
+        userEmail: userProfile?.email || '',
+        userName: userProfile?.name || '',
+        source: 'Chat Coming Soon Modal',
+        wantsEarlyAccess: true
+      });
+    } catch (err) {
+      console.warn('Inquiry sync failed:', err);
+    }
     showToast('Saved! Connecting to WhatsApp Community...');
     openWhatsAppCommunity();
   };
@@ -363,11 +462,17 @@ export default function App() {
   };
 
   const finishOnboarding = async () => {
+    // Persist locally first so onboarding always completes, even offline
     setIsOnboarded(true);
     localStorage.setItem('nearlyy_onboarded', 'true');
-    await syncUserProfile(userProfile);
+    try {
+      await syncUserProfile(userProfile);
+      showToast('Profile created & synced to Firebase!');
+    } catch (err) {
+      console.warn('Profile sync failed, stored locally:', err);
+      showToast('Profile saved on this device');
+    }
     setCurrentScreen('home');
-    showToast('Profile created & synced to Firebase!');
   };
 
   const resetOnboarding = async () => {
@@ -475,23 +580,24 @@ export default function App() {
   );
 
   return (
-    <div className="w-full h-full min-h-[100dvh] bg-[#F7F5FF] flex flex-col items-center justify-center p-0 sm:p-2 md:p-4 font-sans antialiased text-slate-800 selection:bg-[#EAE5FF] selection:text-[#5128E8]">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-4 z-[999] bg-[#5128E8] text-white px-4 py-2.5 rounded-full text-xs font-bold shadow-xl toast-notification-pill flex items-center space-x-2 border border-white/20">
-          <Zap className="w-3.5 h-3.5 text-amber-300" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* App Container: Auto-scales cleanly to any phone or tablet aspect ratio */}
-      <div className="w-full min-h-[100dvh] sm:h-[94vh] sm:max-h-[920px] max-w-full sm:max-w-[520px] md:max-w-[600px] bg-white sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden relative border-0 sm:border sm:border-slate-200/80">
+    <div className="w-full h-full bg-[#F7F5FF] flex flex-col items-center justify-center p-0 sm:p-2 md:p-4 font-sans antialiased text-slate-800 selection:bg-[#EAE5FF] selection:text-[#5128E8] overflow-hidden">
+      {/* App Container: exact device height on phones, centered card on desktop */}
+      <div className="app-shell max-w-full sm:max-w-[520px] md:max-w-[600px] bg-white sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden relative border-0 sm:border sm:border-slate-200/80">
+        
+        {/* Toast Notification — floats above the bottom nav / sticky CTA */}
+        {toastMessage && (
+          <div className="absolute bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-[999] w-max max-w-[90%] bg-[#5128E8] text-white px-4 py-2.5 rounded-full text-xs font-bold shadow-xl toast-notification-pill flex items-center space-x-2 border border-white/20">
+            <Zap className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+            <span className="truncate">{toastMessage}</span>
+          </div>
+        )}
         
         {/* ============================================================ */}
         {/* ONBOARDING FLOW (7 STEPS)                                    */}
         {/* ============================================================ */}
         {!isOnboarded ? (
-          <div className="flex-1 flex flex-col justify-between p-5 pt-[max(env(safe-area-inset-top,0px),1.25rem)] pb-[max(env(safe-area-inset-bottom,0px),1.25rem)] overflow-y-auto no-scrollbar bg-[#F7F5FF] onboarding-step-content">
+          <div className="flex-1 min-h-0 flex flex-col justify-between gap-4 p-5 pt-[max(env(safe-area-inset-top,0px),1.25rem)] pb-[max(env(safe-area-inset-bottom,0px),1.25rem)] overflow-y-auto no-scrollbar scroll-area bg-[#F7F5FF] onboarding-step-content">
+            
             
             {/* STEP 1: WELCOME SCREEN */}
             {onboardingStep === 1 && (
@@ -522,16 +628,18 @@ export default function App() {
                 </div>
 
                 {/* Auto-Rotating Hero Carousel */}
-                <div className="relative rounded-3xl overflow-hidden shadow-[0_12px_32px_rgba(81,40,232,0.15)] h-64 w-full border border-white group select-none">
+                <div className="relative rounded-3xl overflow-hidden shadow-[0_12px_32px_rgba(81,40,232,0.15)] h-[clamp(11rem,32vh,16rem)] w-full border border-white group select-none">
                   {HERO_SLIDES.map((slide, idx) => (
                     <div 
                       key={slide.title}
-                      className={`hero-slide absolute inset-0 transition-opacity duration-700 ease-in-out ${idx === heroSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
+                      className={`hero-slide absolute inset-0 ${idx === heroSlideIndex ? 'z-10' : 'z-0 pointer-events-none opacity-0'}`}
                     >
                       <img 
                         src={slide.image} 
                         alt={slide.title} 
                         className="w-full h-full object-cover"
+                        loading={idx === 0 ? 'eager' : 'lazy'}
+                        decoding="async"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-900/30 to-transparent"></div>
                       
@@ -593,7 +701,7 @@ export default function App() {
 
                 <button 
                   onClick={() => setOnboardingStep(2)}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#5128E8] to-[#6C47FF] text-white font-bold text-sm shadow-[0_10px_25px_rgba(81,40,232,0.35)] hover:opacity-95 active:scale-98 transition-all flex items-center justify-center space-x-2"
+                  className="sticky-cta w-full py-4 rounded-2xl bg-gradient-to-r from-[#5128E8] to-[#6C47FF] text-white font-bold text-sm shadow-[0_10px_25px_rgba(81,40,232,0.35)] hover:opacity-95 active:scale-98 transition-all flex items-center justify-center space-x-2"
                 >
                   <span>Get Started</span>
                   <ArrowRight className="w-4 h-4" />
@@ -735,7 +843,7 @@ export default function App() {
 
                 <button 
                   onClick={() => setOnboardingStep(4)}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#5128E8] to-[#6C47FF] text-white font-bold text-sm shadow-[0_10px_25px_rgba(81,40,232,0.35)] hover:opacity-95 active:scale-98 transition-all flex items-center justify-center space-x-1"
+                  className="sticky-cta w-full py-4 rounded-2xl bg-gradient-to-r from-[#5128E8] to-[#6C47FF] text-white font-bold text-sm shadow-[0_10px_25px_rgba(81,40,232,0.35)] hover:opacity-95 active:scale-98 transition-all flex items-center justify-center space-x-1"
                 >
                   <span>Next</span>
                   <ArrowRight className="w-4 h-4" />
@@ -776,7 +884,7 @@ export default function App() {
                     />
                   </div>
 
-                  <div className="space-y-2 max-h-[340px] overflow-y-auto no-scrollbar pr-1">
+                  <div className="space-y-2 max-h-[min(340px,38vh)] overflow-y-auto no-scrollbar pr-1">
                     {filteredColleges.map((college) => {
                       const isSelected = userProfile.college === college.name;
                       return (
@@ -820,7 +928,7 @@ export default function App() {
 
                 <button 
                   onClick={() => setOnboardingStep(5)}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#5128E8] to-[#6C47FF] text-white font-bold text-sm shadow-[0_10px_25px_rgba(81,40,232,0.35)] hover:opacity-95 active:scale-98 transition-all flex items-center justify-center space-x-1"
+                  className="sticky-cta w-full py-4 rounded-2xl bg-gradient-to-r from-[#5128E8] to-[#6C47FF] text-white font-bold text-sm shadow-[0_10px_25px_rgba(81,40,232,0.35)] hover:opacity-95 active:scale-98 transition-all flex items-center justify-center space-x-1"
                 >
                   <span>Next</span>
                   <ArrowRight className="w-4 h-4" />
@@ -913,7 +1021,7 @@ export default function App() {
 
                 <button 
                   onClick={() => setOnboardingStep(6)}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#5128E8] to-[#6C47FF] text-white font-bold text-sm shadow-[0_10px_25px_rgba(81,40,232,0.35)] hover:opacity-95 active:scale-98 transition-all flex items-center justify-center space-x-1"
+                  className="sticky-cta w-full py-4 rounded-2xl bg-gradient-to-r from-[#5128E8] to-[#6C47FF] text-white font-bold text-sm shadow-[0_10px_25px_rgba(81,40,232,0.35)] hover:opacity-95 active:scale-98 transition-all flex items-center justify-center space-x-1"
                 >
                   <span>Next</span>
                   <ArrowRight className="w-4 h-4" />
@@ -924,9 +1032,9 @@ export default function App() {
             {/* STEP 6: WHAT ARE YOU INTERESTED IN? */}
             {onboardingStep === 6 && (
               <div className="flex-1 flex flex-col justify-between py-2 space-y-4">
-                <div>
+                <div className="pb-16">
                   <div className="flex items-center justify-between pb-3">
-                    <button onClick={() => setOnboardingStep(5)} className="text-slate-600 hover:text-slate-900">
+                    <button onClick={() => setOnboardingStep(5)} className="text-slate-600 hover:text-slate-900" aria-label="Back">
                       <ArrowLeft className="w-5 h-5" />
                     </button>
                     <div className="flex items-center space-x-1.5">
@@ -950,7 +1058,7 @@ export default function App() {
                         <div 
                           key={item.id}
                           onClick={() => toggleInterest(item.id)}
-                          className={`p-4 rounded-3xl border flex flex-col justify-between h-40 cursor-pointer transition-all ${
+                          className={`p-3 sm:p-4 rounded-3xl border flex flex-col justify-between h-36 sm:h-40 cursor-pointer transition-all ${
                             selected 
                               ? 'border-[#5128E8] bg-[#EAE5FF]/50 shadow-[0_4px_16px_rgba(81,40,232,0.12)] ring-1 ring-[#5128E8]' 
                               : 'bg-white border-slate-200 hover:border-slate-300'
@@ -981,7 +1089,7 @@ export default function App() {
 
                 <button 
                   onClick={() => setOnboardingStep(7)}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#5128E8] to-[#6C47FF] text-white font-bold text-sm shadow-[0_10px_25px_rgba(81,40,232,0.35)] hover:opacity-95 active:scale-98 transition-all flex items-center justify-center space-x-1"
+                  className="sticky-cta w-full py-4 rounded-2xl bg-gradient-to-r from-[#5128E8] to-[#6C47FF] text-white font-bold text-sm shadow-[0_10px_25px_rgba(81,40,232,0.35)] hover:opacity-95 active:scale-98 transition-all flex items-center justify-center space-x-1"
                 >
                   <span>Next</span>
                   <ArrowRight className="w-4 h-4" />
@@ -1007,7 +1115,7 @@ export default function App() {
                   <div className="space-y-1.5">
                     <h2 className="text-3xl font-black text-slate-900 tracking-tight">You're all set!</h2>
                     <p className="text-sm font-bold text-[#5128E8]">
-                      Welcome to NearlyY, {userProfile.name.split(' ')[0]}! 🚀
+                      Welcome to NearlyY, {firstNameOf(userProfile.name)}! 🚀
                     </p>
                   </div>
 
@@ -1017,7 +1125,7 @@ export default function App() {
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-slate-900">Start exploring your campus & neighborhood community now!</h4>
-                      <p className="text-[10px] text-slate-500 mt-0.5">{userProfile.college} • {userProfile.subLocality.split(',')[0]}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">{userProfile.college} • {shortLocalityOf(userProfile.subLocality)}</p>
                     </div>
                   </div>
                 </div>
@@ -1034,7 +1142,7 @@ export default function App() {
 
                   <button 
                     onClick={finishOnboarding}
-                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#5128E8] to-[#6C47FF] text-white font-bold text-sm shadow-[0_10px_25px_rgba(81,40,232,0.35)] hover:opacity-95 active:scale-98 transition-all flex items-center justify-center space-x-2"
+                    className="sticky-cta w-full py-4 rounded-2xl bg-gradient-to-r from-[#5128E8] to-[#6C47FF] text-white font-bold text-sm shadow-[0_10px_25px_rgba(81,40,232,0.35)] hover:opacity-95 active:scale-98 transition-all flex items-center justify-center space-x-2"
                   >
                     <span>Go to Home</span>
                     <ArrowRight className="w-4 h-4" />
@@ -1048,13 +1156,14 @@ export default function App() {
           /* ============================================================ */
           /* MAIN APPLICATION DASHBOARD (When User is Logged In)          */
           /* ============================================================ */
-          <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(5rem+env(safe-area-inset-bottom,0px))] bg-[#F7F5FF]">
+          <>
+            <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar scroll-area bg-[#F7F5FF]">
             
             {/* SCREEN 1: HOME DASHBOARD */}
             {currentScreen === 'home' && (
-              <div className="p-5 space-y-5">
+              <div className="screen-content safe-content-top px-4 sm:px-5 pb-5 space-y-5">
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                <div className="home-section flex items-center justify-between">
                   <div className="flex items-center space-x-2.5">
                     <div className="w-10 h-10 rounded-2xl flex items-center justify-center overflow-hidden shadow-[0_4px_12px_rgba(81,40,232,0.2)] bg-transparent shrink-0">
                       <img 
@@ -1073,16 +1182,16 @@ export default function App() {
                         <h1 className="text-xl font-black text-slate-900 tracking-tight">NearlyY</h1>
                         <span className="text-[10px] bg-[#EAE5FF] text-[#5128E8] px-2 py-0.5 rounded-full font-bold">Lohegaon</span>
                       </div>
-                      <p className="text-xs text-slate-500 font-medium">Welcome back, {userProfile.name.split(' ')[0]}!</p>
+                      <p className="text-xs text-slate-500 font-medium">Welcome back, {firstNameOf(userProfile.name)}!</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <div className="flex items-center space-x-1 text-xs text-slate-700 bg-white px-2.5 py-1.5 rounded-full border border-slate-200/90 shadow-xs font-semibold">
-                      <MapPin className="w-3.5 h-3.5 text-[#5128E8]" />
-                      <span>{userProfile.subLocality.split(',')[0]}</span>
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <div className="flex items-center space-x-1 text-[11px] sm:text-xs text-slate-700 bg-white px-2 sm:px-2.5 py-1.5 rounded-full border border-slate-200/90 shadow-xs font-semibold whitespace-nowrap">
+                      <MapPin className="w-3.5 h-3.5 text-[#5128E8] shrink-0" />
+                      <span className="max-w-[76px] sm:max-w-none truncate">{shortLocalityOf(userProfile.subLocality)}</span>
                     </div>
-                    <button onClick={() => showToast('All notifications read')} className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-xs relative">
+                    <button onClick={() => showToast('All notifications read')} className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-xs relative shrink-0" aria-label="Notifications">
                       <Bell className="w-4 h-4" />
                       <span className="w-2 h-2 rounded-full bg-emerald-500 absolute top-2 right-2 border-2 border-white"></span>
                     </button>
@@ -1090,7 +1199,7 @@ export default function App() {
                 </div>
 
                 {/* Hero Banner */}
-                <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-5 text-white shadow-[0_12px_28px_rgba(15,23,42,0.18)]">
+                <div className="home-section relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-5 text-white shadow-[0_12px_28px_rgba(15,23,42,0.18)]">
                   <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-65">
                     <img 
                       src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&auto=format&fit=crop&q=80" 
@@ -1115,7 +1224,7 @@ export default function App() {
                 </div>
 
                 {/* Explore Services 4-Grid */}
-                <div className="space-y-3">
+                <div className="home-section space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-bold text-slate-900">Explore Services</h3>
@@ -1127,47 +1236,47 @@ export default function App() {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-5 gap-1.5">
-                    <button onClick={() => openCategory('mess')} className="flex flex-col items-center p-2 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
-                      <div className="w-10 h-10 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
-                        <UtensilsCrossed className="w-5 h-5" />
+                  <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
+                    <button onClick={() => openCategory('mess')} className="flex flex-col items-center p-1.5 sm:p-2 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
+                        <UtensilsCrossed className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
-                      <span className="text-[10px] font-bold text-slate-800 text-center mt-1.5 leading-tight">Mess</span>
+                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-800 text-center mt-1.5 leading-tight">Mess</span>
                     </button>
 
-                    <button onClick={() => openCategory('laundry')} className="flex flex-col items-center p-2 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
-                      <div className="w-10 h-10 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
-                        <Shirt className="w-5 h-5" />
+                    <button onClick={() => openCategory('laundry')} className="flex flex-col items-center p-1.5 sm:p-2 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
+                        <Shirt className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
-                      <span className="text-[10px] font-bold text-slate-800 text-center mt-1.5 leading-tight">Laundry</span>
+                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-800 text-center mt-1.5 leading-tight">Laundry</span>
                     </button>
 
-                    <button onClick={() => openCategory('gym')} className="flex flex-col items-center p-2 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
-                      <div className="w-10 h-10 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
-                        <Dumbbell className="w-5 h-5" />
+                    <button onClick={() => openCategory('gym')} className="flex flex-col items-center p-1.5 sm:p-2 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
+                        <Dumbbell className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
-                      <span className="text-[10px] font-bold text-slate-800 text-center mt-1.5 leading-tight">Gym</span>
+                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-800 text-center mt-1.5 leading-tight">Gym</span>
                     </button>
 
-                    <button onClick={() => openCategory('flats')} className="flex flex-col items-center p-2 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
-                      <div className="w-10 h-10 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
-                        <Home className="w-5 h-5" />
+                    <button onClick={() => openCategory('flats')} className="flex flex-col items-center p-1.5 sm:p-2 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
+                        <Home className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
-                      <span className="text-[10px] font-bold text-slate-800 text-center mt-1.5 leading-tight">Flats/PG</span>
+                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-800 text-center mt-1.5 leading-tight">Flats/PG</span>
                     </button>
 
-                    <button onClick={() => openCategory('parties')} className="flex flex-col items-center p-2 rounded-2xl bg-gradient-to-b from-purple-50 to-pink-50 border border-pink-200 shadow-xs hover:border-pink-500/40 transition-all active:scale-95">
-                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#FF007A] to-[#7928CA] text-white flex items-center justify-center shadow-xs">
-                        <Sparkles className="w-5 h-5" />
+                    <button onClick={() => openCategory('parties')} className="flex flex-col items-center p-1.5 sm:p-2 rounded-2xl bg-gradient-to-b from-purple-50 to-pink-50 border border-pink-200 shadow-xs hover:border-pink-500/40 transition-all active:scale-95">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-[#FF007A] to-[#7928CA] text-white flex items-center justify-center shadow-xs">
+                        <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
-                      <span className="text-[10px] font-black text-pink-700 text-center mt-1.5 leading-tight">Parties 🎉</span>
+                      <span className="text-[9px] sm:text-[10px] font-black text-pink-700 text-center mt-1.5 leading-tight">Parties</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Featured Campus Parties Banner */}
                 {servicesData.parties && servicesData.parties.length > 0 && (
-                  <div className="space-y-2.5">
+                  <div className="home-section space-y-2.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-1.5">
                         <span className="w-2 h-2 rounded-full bg-pink-500 animate-ping"></span>
@@ -1213,7 +1322,7 @@ export default function App() {
                 )}
 
                 {/* Promo Box with direct Chat Trigger */}
-                <div onClick={() => handleOpenChat('Home Promo Box')} className="rounded-2xl bg-[#EAE5FF]/70 border border-[#5128E8]/20 p-3.5 flex items-center justify-between cursor-pointer hover:bg-[#EAE5FF] transition-all">
+                <div onClick={() => handleOpenChat('Home Promo Box')} className="home-section rounded-2xl bg-[#EAE5FF]/70 border border-[#5128E8]/20 p-3.5 flex items-center justify-between cursor-pointer hover:bg-[#EAE5FF] transition-all">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 rounded-xl bg-[#5128E8] text-white flex items-center justify-center shadow-xs">
                       <MessageCircle className="w-5 h-5" />
@@ -1227,7 +1336,7 @@ export default function App() {
                 </div>
 
                 {/* Popular Right Now */}
-                <div className="space-y-3">
+                <div className="home-section space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-bold text-slate-900">Popular in Lohegaon</h3>
                     <span className="text-[10px] text-slate-400">Updated from cloud</span>
@@ -1279,15 +1388,15 @@ export default function App() {
 
             {/* SCREEN 2: CATEGORY LIST (MULTIPLE OPTIONS VIEW) */}
             {currentScreen === 'category-list' && (
-              <div className="p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <button onClick={() => setCurrentScreen('home')} className="w-9 h-9 rounded-full bg-white border flex items-center justify-center">
+              <div className="screen-content safe-content-top px-4 sm:px-5 pb-6 space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <button onClick={() => setCurrentScreen('home')} className="w-9 h-9 rounded-full bg-white border flex items-center justify-center shrink-0" aria-label="Back">
                     <ArrowLeft className="w-4 h-4 text-slate-700" />
                   </button>
-                  <h2 className="text-base font-extrabold text-slate-900 capitalize">
+                  <h2 className="text-base font-extrabold text-slate-900 capitalize truncate text-center">
                     {activeCategory === 'mess' ? 'Mess & Tiffin' : activeCategory === 'laundry' ? 'Laundry Services' : activeCategory === 'gym' ? 'Gyms & Fitness' : activeCategory === 'parties' ? 'Parties & Campus Events' : 'Flats & PGs'}
                   </h2>
-                  <div className="w-9"></div>
+                  <div className="w-9 shrink-0"></div>
                 </div>
 
                 {/* Search Bar */}
@@ -1303,7 +1412,7 @@ export default function App() {
                 </div>
 
                 {/* Category Switcher Tabs */}
-                <div className="flex space-x-1.5 overflow-x-auto no-scrollbar py-1">
+                <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-1">
                   {[
                     { id: 'mess', label: '🍲 Mess' },
                     { id: 'laundry', label: '👕 Laundry' },
@@ -1314,7 +1423,7 @@ export default function App() {
                     <button
                       key={cat.id}
                       onClick={() => openCategory(cat.id)}
-                      className={`service-tab px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                      className={`service-tab px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
                         activeCategory === cat.id ? 'bg-[#5128E8] text-white shadow-xs' : 'bg-white border text-slate-600'
                       }`}
                     >
@@ -1325,6 +1434,13 @@ export default function App() {
 
                 {/* Multiple Options List */}
                 <div className="space-y-3">
+                  {getFilteredItems().length === 0 && (
+                    <div className="py-12 px-6 rounded-2xl bg-white border border-dashed border-slate-200 text-center space-y-1">
+                      <Search className="w-7 h-7 text-slate-300 mx-auto" />
+                      <p className="text-xs font-bold text-slate-600">No results found</p>
+                      <p className="text-[11px] text-slate-400">Try a different search or switch category.</p>
+                    </div>
+                  )}
                   {getFilteredItems().map((item) => {
                     const itemImages = getItemImages(item);
                     return (
@@ -1334,7 +1450,7 @@ export default function App() {
                         className="service-card p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all cursor-pointer flex space-x-3"
                       >
                         <div className="relative w-24 h-24 rounded-xl overflow-hidden shrink-0 bg-slate-100">
-                          <img src={itemImages[0] || item.coverImage} alt={item.name} className="w-full h-full object-cover" />
+                          <img src={itemImages[0] || item.coverImage} alt={item.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                           {itemImages.length > 1 && (
                             <span className="absolute bottom-1 right-1 bg-slate-950/75 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md flex items-center">
                               <ImageIcon className="w-2.5 h-2.5 mr-0.5 text-[#EAE5FF]" />
@@ -1342,15 +1458,15 @@ export default function App() {
                             </span>
                           )}
                         </div>
-                        <div className="flex-1 flex flex-col justify-between">
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
                           <div>
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-xs font-bold text-slate-900">{item.name}</h4>
-                              <span className="text-xs font-extrabold text-[#5128E8]">
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="text-xs font-bold text-slate-900 leading-snug">{item.name}</h4>
+                              <span className="text-xs font-extrabold text-[#5128E8] whitespace-nowrap shrink-0">
                                 {item.priceDisplay || (activeCategory === 'flats' ? `₹${item.price}/mo` : activeCategory === 'mess' ? '₹90/thali' : activeCategory === 'laundry' ? '₹80/kg' : activeCategory === 'parties' ? 'From ₹399' : '₹999/mo')}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-500 mt-0.5">{item.venue || item.locality}</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5 truncate">{item.venue || item.locality}</p>
                             {item.dateTime && (
                               <p className="text-[10px] text-pink-600 font-bold mt-0.5 flex items-center">
                                 <Calendar className="w-2.5 h-2.5 mr-1" />
@@ -1382,24 +1498,28 @@ export default function App() {
               const activeImg = itemImages[activeImageIndex] || selectedItem.coverImage;
 
               return (
-                <div className="space-y-4 detail-view-container">
+                <div className="screen-content space-y-4 detail-view-container">
                   {/* Hero Photo Carousel & Controls */}
-                  <div className="relative h-64 w-full bg-slate-950 overflow-hidden">
+                  <div className="relative h-[clamp(12rem,34vh,17rem)] w-full bg-slate-950 overflow-hidden">
                     <img 
                       src={activeImg} 
                       alt={selectedItem.name} 
-                      className="w-full h-full object-cover transition-all duration-300" 
+                      className="detail-hero-img w-full h-full object-cover transition-all duration-300" 
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent"></div>
                     
                     <button 
                       onClick={() => setCurrentScreen('category-list')} 
-                      className="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-slate-800 shadow-md hover:bg-white transition"
+                      className="absolute w-9 h-9 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-slate-800 shadow-md hover:bg-white transition"
+                      style={{ top: 'max(env(safe-area-inset-top, 0px) + 0.75rem, 1rem)', left: '1rem' }}
                     >
                       <ArrowLeft className="w-4 h-4" />
                     </button>
 
-                    <div className="absolute top-4 right-4 flex items-center space-x-2">
+                    <div 
+                      className="absolute flex items-center space-x-2"
+                      style={{ top: 'max(env(safe-area-inset-top, 0px) + 0.75rem, 1rem)', right: '1rem' }}
+                    >
                       {/* Photo counter badge */}
                       {itemImages.length > 1 && (
                         <span className="bg-slate-950/70 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full border border-white/20">
@@ -1802,7 +1922,7 @@ export default function App() {
 
             {/* SCREEN 4: BOOKING CONFIRMED */}
             {currentScreen === 'confirmed' && (
-              <div className="p-4 sm:p-6 flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4 md:min-h-[400px]">
+              <div className="screen-content safe-content-top p-4 sm:p-6 flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4 md:min-h-[400px]">
                 <div className="w-20 h-20 rounded-full bg-[#EAE5FF] border-4 border-[#5128E8]/30 flex items-center justify-center shadow-lg relative animate-bounce">
                   <Check className="w-10 h-10 text-[#5128E8] stroke-[3]" />
                   <span className="absolute -top-1 -right-1 text-xl">🎉</span>
@@ -1837,7 +1957,7 @@ export default function App() {
 
             {/* SCREEN 5: PROFILE (Exact match to Mockup Screen 8 + Real Bookings) */}
             {currentScreen === 'profile' && (
-              <div className="p-5 space-y-5">
+              <div className="screen-content safe-content-top px-4 sm:px-5 pb-6 space-y-5">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-extrabold text-slate-900">My Profile</h2>
                   <button onClick={() => setShowEditProfileModal(true)} className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-xs">
@@ -1851,7 +1971,7 @@ export default function App() {
                     {userProfile.avatar ? (
                       <img src={userProfile.avatar} alt="Avatar" className="w-full h-full object-cover rounded-full" />
                     ) : (
-                      userProfile.name.charAt(0)
+                      String(userProfile.name || 'S').charAt(0)
                     )}
                     <span className="w-6 h-6 rounded-full bg-[#5128E8] text-white flex items-center justify-center absolute bottom-0 right-0 text-xs shadow-md">✓</span>
                   </div>
@@ -1974,8 +2094,8 @@ export default function App() {
             {/* CHAT / WHATSAPP COMMUNITY MODAL                              */}
             {/* ============================================================ */}
             {showChatComingSoonModal && (
-              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
-                <div className="bg-white rounded-3xl p-6 max-w-sm w-full space-y-5 shadow-2xl border border-[#EAE5FF] text-center relative">
+              <div className="chat-modal-backdrop fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                <div className="chat-modal-panel bg-white rounded-3xl p-6 max-w-sm w-full space-y-5 shadow-2xl border border-[#EAE5FF] text-center relative max-h-[90dvh] overflow-y-auto no-scrollbar">
                   <button 
                     onClick={() => setShowChatComingSoonModal(false)}
                     className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 absolute top-4 right-4"
@@ -2047,8 +2167,8 @@ export default function App() {
 
             {/* EDIT PROFILE MODAL */}
             {showEditProfileModal && (
-              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-3xl p-5 max-w-sm w-full space-y-4 max-h-[90vh] overflow-y-auto no-scrollbar shadow-2xl">
+              <div className="edit-modal-backdrop fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                <div className="edit-modal-panel bg-white rounded-3xl p-5 max-w-sm w-full space-y-4 max-h-[90dvh] overflow-y-auto no-scrollbar shadow-2xl">
                   <div className="flex items-center justify-between">
                     <h3 className="text-base font-extrabold text-slate-900">Edit Profile</h3>
                     <button onClick={() => setShowEditProfileModal(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
@@ -2116,9 +2236,14 @@ export default function App() {
 
                   <button 
                     onClick={async () => {
-                      await syncUserProfile(userProfile);
                       setShowEditProfileModal(false);
-                      showToast('Profile updated & synced to Firebase!');
+                      try {
+                        await syncUserProfile(userProfile);
+                        showToast('Profile updated & synced to Firebase!');
+                      } catch (err) {
+                        console.warn('Profile update sync failed:', err);
+                        showToast('Profile updated on this device');
+                      }
                     }}
                     className="w-full py-3.5 rounded-2xl bg-[#5128E8] text-white font-bold text-xs shadow-md"
                   >
@@ -2128,18 +2253,20 @@ export default function App() {
               </div>
             )}
 
-            {/* BOTTOM NAVIGATION BAR */}
-            <div className="absolute bottom-0 left-0 right-0 h-[calc(4rem+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)] bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-6 flex items-center justify-between z-40">
+            </div>
+
+            {/* BOTTOM NAVIGATION BAR — flex child, always visible above safe area */}
+            <nav className="shrink-0 relative h-[calc(4rem+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)] bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 sm:px-6 flex items-center justify-between z-40">
               <button 
                 onClick={() => { setCurrentScreen('home'); setActiveTab('home'); }} 
-                className={`flex flex-col items-center text-[10px] font-bold ${currentScreen === 'home' ? 'text-[#5128E8]' : 'text-slate-400'}`}
+                className={`flex flex-col items-center text-[10px] font-bold h-full justify-center px-2 transition-colors ${currentScreen === 'home' ? 'text-[#5128E8]' : 'text-slate-400'}`}
               >
                 <Home className="w-5 h-5" />
                 <span>Home</span>
               </button>
               <button 
                 onClick={() => openCategory('mess')} 
-                className={`flex flex-col items-center text-[10px] font-bold ${currentScreen === 'category-list' ? 'text-[#5128E8]' : 'text-slate-400'}`}
+                className={`flex flex-col items-center text-[10px] font-bold h-full justify-center px-2 transition-colors ${currentScreen === 'category-list' ? 'text-[#5128E8]' : 'text-slate-400'}`}
               >
                 <Compass className="w-5 h-5" />
                 <span>Explore</span>
@@ -2148,23 +2275,22 @@ export default function App() {
               {/* CHAT TAB (TRIGGERS CHAT COMING SOON MODAL) */}
               <button 
                 onClick={() => handleOpenChat('Bottom Navigation Tab')} 
-                className="flex flex-col items-center text-[10px] font-bold text-slate-400 hover:text-[#5128E8] transition-colors relative"
+                className="flex flex-col items-center justify-center text-[10px] font-bold text-slate-400 hover:text-[#5128E8] transition-colors relative h-full px-2"
               >
                 <MessageCircle className="w-5 h-5" />
                 <span>Chat</span>
-                <span className="w-2 h-2 rounded-full bg-[#5128E8] absolute top-0 right-1 border border-white"></span>
+                <span className="w-2 h-2 rounded-full bg-[#5128E8] absolute top-[calc(50%-16px)] right-1 border border-white"></span>
               </button>
 
               <button 
                 onClick={() => { setCurrentScreen('profile'); setActiveTab('profile'); }} 
-                className={`flex flex-col items-center text-[10px] font-bold ${currentScreen === 'profile' ? 'text-[#5128E8]' : 'text-slate-400'}`}
+                className={`flex flex-col items-center text-[10px] font-bold h-full justify-center px-2 transition-colors ${currentScreen === 'profile' ? 'text-[#5128E8]' : 'text-slate-400'}`}
               >
                 <User className="w-5 h-5" />
                 <span>Profile</span>
               </button>
-            </div>
-
-          </div>
+            </nav>
+          </>
         )}
 
       </div>
