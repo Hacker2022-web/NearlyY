@@ -166,8 +166,8 @@ export function subscribeToUsers(onUpdate) {
 // Seed all initial default services
 export async function seedAllDefaultServices() {
   try {
-    for (const cat of ['mess', 'laundry', 'gym', 'flats']) {
-      for (const item of CATEGORY_DATA[cat]) {
+    for (const cat of ['mess', 'laundry', 'gym', 'flats', 'parties']) {
+      for (const item of (CATEGORY_DATA[cat] || [])) {
         await setDoc(doc(db, 'services', item.id), item, { merge: true });
       }
     }

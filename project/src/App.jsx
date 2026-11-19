@@ -7,7 +7,8 @@ import {
   Snowflake, Users, Activity, ShowerHead, Heart, Settings, HelpCircle, 
   Info, LogOut, Crown, ShoppingBag, Filter, ArrowLeft, Shield, Compass, User,
   Mail, Camera, GraduationCap, Briefcase, Building, X, CheckSquare, Square,
-  MessageSquare, Radio, Send, BellRing, ChevronLeft, Image as ImageIcon
+  MessageSquare, Radio, Send, BellRing, ChevronLeft, Image as ImageIcon,
+  Instagram, PhoneCall, Music, Ticket, ExternalLink
 } from 'lucide-react';
 import { 
   LOCALITY, SERVICES_MENU, CATEGORY_DATA, USER_PROFILE 
@@ -82,7 +83,8 @@ const CORE_SERVICES = [
   { id: 'Mess & Tiffin', name: 'Mess & Tiffin', icon: UtensilsCrossed, desc: 'Daily thalis & meals', sub: 'From ₹90/meal' },
   { id: 'Laundry & Dry Cleaning', name: 'Laundry & Dry Cleaning', icon: Shirt, desc: 'Per-kg wash & iron', sub: 'Doorstep pickup' },
   { id: 'Gym & Fitness', name: 'Gym & Fitness', icon: Dumbbell, desc: 'Daily passes & monthly gym', sub: 'Student discounts' },
-  { id: 'Flats & PG', name: 'Flats & PG', icon: Home, desc: 'Zero brokerage rooms & beds', sub: 'Verified owners' }
+  { id: 'Flats & PG', name: 'Flats & PG', icon: Home, desc: 'Zero brokerage rooms & beds', sub: 'Verified owners' },
+  { id: 'Parties & Events', name: 'Parties & Events', icon: Sparkles, desc: 'Weekend bashes, DJ nights & gigs', sub: 'Passes from ₹299' }
 ];
 
 export default function App() {
@@ -167,11 +169,33 @@ export default function App() {
     return () => clearInterval(interval);
   }, [onboardingStep, isOnboarded]);
 
-  // Subscribe to Firebase Firestore real-time updates & Auth listener
+  // GSAP: Animate hero carousel slide transitions
+  useEffect(() => {
+    const slides = document.querySelectorAll('.hero-slide');
+    if (slides.length === 0) return;
+    slides.forEach((slide, idx) => {
+      const isActive = idx === heroSlideIndex;
+      if (isActive) {
+        gsap.fromTo(slide,
+          { scale: 1.05, opacity: 0, filter: 'blur(4px)' },
+          { scale: 1, opacity: 1, filter: 'blur(0px)', duration: 0.6, ease: 'power3.out' }
+        );
+      }
+    });
+  }, [heroSlideIndex]);
   useEffect(() => {
     const unsubServices = subscribeToServices((data) => {
       setServicesData(data);
       setFirebaseStatus('Firebase: Synced 🟢');
+      setSelectedItem(prev => {
+        if (!prev || !data) return prev;
+        const catList = data[prev.category];
+        if (Array.isArray(catList)) {
+          const fresh = catList.find(i => i.id === prev.id);
+          if (fresh) return fresh;
+        }
+        return prev;
+      });
     });
 
     const unsubBookings = subscribeToBookings(userProfile.email, (bookings) => {
@@ -250,6 +274,12 @@ export default function App() {
     setFilterTag('All');
     setSearchQuery('');
     setCurrentScreen('category-list');
+    // GSAP: Animate category tab switch
+    gsap.fromTo('.service-tab',
+      { scale: 0.95, opacity: 0.7 },
+      { scale: 1, opacity: 1, duration: 0.2, ease: 'power2.out' },
+      false
+    );
   };
 
   const openDetail = (item) => {
@@ -428,6 +458,13 @@ export default function App() {
       }
       if (activeCategory === 'flats' && filterTag === 'Single') return sharing.includes('Single');
       if (activeCategory === 'flats' && filterTag === 'Double') return sharing.includes('Double');
+      if (activeCategory === 'parties') {
+        const genre = String(item.genre || '').toLowerCase();
+        const tags = Array.isArray(item.tags) ? item.tags.join(' ').toLowerCase() : '';
+        if (filterTag === 'Bollywood') return genre.includes('bollywood') || tags.includes('bollywood');
+        if (filterTag === 'Techno') return genre.includes('techno') || tags.includes('techno');
+        if (filterTag === 'Under ₹400') return Number(item.startingPrice || 0) <= 400;
+      }
       return true;
     });
   };
@@ -448,7 +485,7 @@ export default function App() {
       )}
 
       {/* App Container: Auto-scales cleanly to any phone or tablet aspect ratio */}
-      <div className="w-full h-[100dvh] sm:h-[94vh] sm:max-h-[920px] max-w-full sm:max-w-[480px] md:max-w-[540px] bg-white sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden relative border-0 sm:border sm:border-slate-200/80">
+      <div className="w-full min-h-[100dvh] sm:h-[94vh] sm:max-h-[920px] max-w-full sm:max-w-[520px] md:max-w-[600px] bg-white sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden relative border-0 sm:border sm:border-slate-200/80">
         
         {/* ============================================================ */}
         {/* ONBOARDING FLOW (7 STEPS)                                    */}
@@ -489,7 +526,7 @@ export default function App() {
                   {HERO_SLIDES.map((slide, idx) => (
                     <div 
                       key={slide.title}
-                      className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${idx === heroSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
+                      className={`hero-slide absolute inset-0 transition-opacity duration-700 ease-in-out ${idx === heroSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
                     >
                       <img 
                         src={slide.image} 
@@ -1090,36 +1127,90 @@ export default function App() {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-2.5">
-                    <button onClick={() => openCategory('mess')} className="flex flex-col items-center p-3 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
-                      <div className="w-12 h-12 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
-                        <UtensilsCrossed className="w-6 h-6" />
+                  <div className="grid grid-cols-5 gap-1.5">
+                    <button onClick={() => openCategory('mess')} className="flex flex-col items-center p-2 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
+                      <div className="w-10 h-10 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
+                        <UtensilsCrossed className="w-5 h-5" />
                       </div>
-                      <span className="text-[11px] font-bold text-slate-800 text-center mt-2 leading-tight">Mess & Tiffin</span>
+                      <span className="text-[10px] font-bold text-slate-800 text-center mt-1.5 leading-tight">Mess</span>
                     </button>
 
-                    <button onClick={() => openCategory('laundry')} className="flex flex-col items-center p-3 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
-                      <div className="w-12 h-12 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
-                        <Shirt className="w-6 h-6" />
+                    <button onClick={() => openCategory('laundry')} className="flex flex-col items-center p-2 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
+                      <div className="w-10 h-10 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
+                        <Shirt className="w-5 h-5" />
                       </div>
-                      <span className="text-[11px] font-bold text-slate-800 text-center mt-2 leading-tight">Laundry</span>
+                      <span className="text-[10px] font-bold text-slate-800 text-center mt-1.5 leading-tight">Laundry</span>
                     </button>
 
-                    <button onClick={() => openCategory('gym')} className="flex flex-col items-center p-3 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
-                      <div className="w-12 h-12 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
-                        <Dumbbell className="w-6 h-6" />
+                    <button onClick={() => openCategory('gym')} className="flex flex-col items-center p-2 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
+                      <div className="w-10 h-10 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
+                        <Dumbbell className="w-5 h-5" />
                       </div>
-                      <span className="text-[11px] font-bold text-slate-800 text-center mt-2 leading-tight">Gym & Fitness</span>
+                      <span className="text-[10px] font-bold text-slate-800 text-center mt-1.5 leading-tight">Gym</span>
                     </button>
 
-                    <button onClick={() => openCategory('flats')} className="flex flex-col items-center p-3 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
-                      <div className="w-12 h-12 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
-                        <Home className="w-6 h-6" />
+                    <button onClick={() => openCategory('flats')} className="flex flex-col items-center p-2 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-[#5128E8]/40 transition-all active:scale-95">
+                      <div className="w-10 h-10 rounded-2xl bg-[#EAE5FF] text-[#5128E8] flex items-center justify-center">
+                        <Home className="w-5 h-5" />
                       </div>
-                      <span className="text-[11px] font-bold text-slate-800 text-center mt-2 leading-tight">Flats & PG</span>
+                      <span className="text-[10px] font-bold text-slate-800 text-center mt-1.5 leading-tight">Flats/PG</span>
+                    </button>
+
+                    <button onClick={() => openCategory('parties')} className="flex flex-col items-center p-2 rounded-2xl bg-gradient-to-b from-purple-50 to-pink-50 border border-pink-200 shadow-xs hover:border-pink-500/40 transition-all active:scale-95">
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#FF007A] to-[#7928CA] text-white flex items-center justify-center shadow-xs">
+                        <Sparkles className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black text-pink-700 text-center mt-1.5 leading-tight">Parties 🎉</span>
                     </button>
                   </div>
                 </div>
+
+                {/* Featured Campus Parties Banner */}
+                {servicesData.parties && servicesData.parties.length > 0 && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="w-2 h-2 rounded-full bg-pink-500 animate-ping"></span>
+                        <h3 className="text-sm font-black text-slate-900 tracking-tight">Parties & Gigs Near Campus</h3>
+                      </div>
+                      <button onClick={() => openCategory('parties')} className="text-xs font-bold text-pink-600 flex items-center space-x-0.5 hover:underline">
+                        <span>See all ({servicesData.parties.length})</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="flex space-x-3 overflow-x-auto no-scrollbar py-1">
+                      {servicesData.parties.map((party) => (
+                        <div 
+                          key={party.id}
+                          onClick={() => openDetail(party)}
+                          className="w-64 shrink-0 rounded-2xl bg-white border border-slate-100 shadow-xs overflow-hidden cursor-pointer hover:border-pink-300 transition-all group"
+                        >
+                          <div className="relative h-28 w-full overflow-hidden bg-slate-900">
+                            <img src={party.coverImage} alt={party.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+                            <span className="absolute top-2 left-2 bg-[#FF007A] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-xs tracking-wider">
+                              {party.dateTime?.split('•')[0] || 'Weekend'}
+                            </span>
+                            <span className="absolute bottom-2 left-2 text-white text-[10px] font-extrabold flex items-center drop-shadow-sm">
+                              <MapPin className="w-3 h-3 text-pink-400 mr-1 shrink-0" />
+                              <span className="truncate max-w-[150px]">{party.venue || party.locality}</span>
+                            </span>
+                          </div>
+                          <div className="p-2.5 flex items-center justify-between">
+                            <div className="truncate mr-2">
+                              <h4 className="text-xs font-bold text-slate-900 truncate">{party.name}</h4>
+                              <p className="text-[10px] text-slate-500 truncate">{party.genre || 'Live DJ & Music'}</p>
+                            </div>
+                            <span className="text-xs font-black text-[#5128E8] shrink-0 bg-[#EAE5FF] px-2 py-1 rounded-xl">
+                              {party.priceDisplay || `₹${party.startingPrice}`}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Promo Box with direct Chat Trigger */}
                 <div onClick={() => handleOpenChat('Home Promo Box')} className="rounded-2xl bg-[#EAE5FF]/70 border border-[#5128E8]/20 p-3.5 flex items-center justify-between cursor-pointer hover:bg-[#EAE5FF] transition-all">
@@ -1194,7 +1285,7 @@ export default function App() {
                     <ArrowLeft className="w-4 h-4 text-slate-700" />
                   </button>
                   <h2 className="text-base font-extrabold text-slate-900 capitalize">
-                    {activeCategory === 'mess' ? 'Mess & Tiffin' : activeCategory === 'laundry' ? 'Laundry Services' : activeCategory === 'gym' ? 'Gyms & Fitness' : 'Flats & PGs'}
+                    {activeCategory === 'mess' ? 'Mess & Tiffin' : activeCategory === 'laundry' ? 'Laundry Services' : activeCategory === 'gym' ? 'Gyms & Fitness' : activeCategory === 'parties' ? 'Parties & Campus Events' : 'Flats & PGs'}
                   </h2>
                   <div className="w-9"></div>
                 </div>
@@ -1217,12 +1308,13 @@ export default function App() {
                     { id: 'mess', label: '🍲 Mess' },
                     { id: 'laundry', label: '👕 Laundry' },
                     { id: 'gym', label: '🏋️ Gym' },
-                    { id: 'flats', label: '🏡 Flats/PG' }
+                    { id: 'flats', label: '🏡 Flats/PG' },
+                    { id: 'parties', label: '🎉 Parties' }
                   ].map((cat) => (
                     <button
                       key={cat.id}
                       onClick={() => openCategory(cat.id)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                      className={`service-tab px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
                         activeCategory === cat.id ? 'bg-[#5128E8] text-white shadow-xs' : 'bg-white border text-slate-600'
                       }`}
                     >
@@ -1255,10 +1347,16 @@ export default function App() {
                             <div className="flex items-center justify-between">
                               <h4 className="text-xs font-bold text-slate-900">{item.name}</h4>
                               <span className="text-xs font-extrabold text-[#5128E8]">
-                                {activeCategory === 'flats' ? `₹${item.price}/mo` : activeCategory === 'mess' ? '₹90/thali' : activeCategory === 'laundry' ? '₹80/kg' : '₹999/mo'}
+                                {item.priceDisplay || (activeCategory === 'flats' ? `₹${item.price}/mo` : activeCategory === 'mess' ? '₹90/thali' : activeCategory === 'laundry' ? '₹80/kg' : activeCategory === 'parties' ? 'From ₹399' : '₹999/mo')}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-500 mt-0.5">{item.locality}</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">{item.venue || item.locality}</p>
+                            {item.dateTime && (
+                              <p className="text-[10px] text-pink-600 font-bold mt-0.5 flex items-center">
+                                <Calendar className="w-2.5 h-2.5 mr-1" />
+                                {item.dateTime}
+                              </p>
+                            )}
                             {item.description && (
                               <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{item.description}</p>
                             )}
@@ -1504,13 +1602,207 @@ export default function App() {
                       </div>
                     </div>
                   )}
+
+                  {selectedItem.category === 'parties' && (
+                    <div className="px-5 space-y-4 pb-8">
+                      {/* Shaadi Fits & Move-on Tagline Banner */}
+                      <div className="relative overflow-hidden p-4 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 text-white shadow-md">
+                        <div className="relative z-10 space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/30">
+                              ✨ (SHAADI FITS ONLY)
+                            </span>
+                            <span className="text-[10px] font-bold bg-black/25 px-2 py-0.5 rounded-full">
+                              Sunday Sundowner
+                            </span>
+                          </div>
+                          <h3 className="text-base font-black tracking-tight pt-1">
+                            CLOSURE LOOKS BETTER ON THE DANCE FLOOR!
+                          </h3>
+                          <p className="text-[11px] text-white/90 font-medium">
+                            The अल्टीमेट Move-On Night • High-Energy Desi & Bollywood
+                          </p>
+                        </div>
+                        <div className="absolute -right-4 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+                      </div>
+
+                      {/* Primary WhatsApp Booking CTA */}
+                      <button 
+                        onClick={() => {
+                          const waPhone = selectedItem.phone || '917058547559';
+                          const msg = `Hi UV Events! I saw 'Ex Ki Shaadi' on NearlyY. I want to enquire about entry passes and VIP table reservations for Sunday 22nd Nov.`;
+                          recordInquiry({
+                            service: 'Parties & Events',
+                            title: selectedItem.name,
+                            phone: waPhone,
+                            timestamp: new Date().toISOString()
+                          });
+                          window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                        }}
+                        className="w-full py-4 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-sm shadow-[0_8px_24px_rgba(37,211,102,0.35)] active:scale-98 transition-all flex items-center justify-center space-x-2"
+                      >
+                        <MessageCircle className="w-5 h-5 fill-white/20" />
+                        <span>Book Passes & Tables on WhatsApp →</span>
+                      </button>
+
+                      {/* Direct Infoline & Instagram Contact Grid */}
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <a 
+                          href={`tel:${selectedItem.infoline || '7058547559'}`}
+                          className="p-3 rounded-2xl bg-slate-900 text-white flex items-center space-x-2.5 hover:bg-slate-800 transition active:scale-98 shadow-xs"
+                        >
+                          <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                            <PhoneCall className="w-4 h-4 text-emerald-400" />
+                          </div>
+                          <div className="text-left overflow-hidden">
+                            <span className="text-[10px] text-slate-400 block font-medium">Infoline Desk</span>
+                            <span className="text-xs font-black tracking-tight truncate block">
+                              {selectedItem.infoline || '7058547559'}
+                            </span>
+                          </div>
+                        </a>
+
+                        <a 
+                          href={selectedItem.instagram || 'https://www.instagram.com/uv_events.co/'}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-3 rounded-2xl bg-gradient-to-tr from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white flex items-center space-x-2.5 hover:opacity-95 transition active:scale-98 shadow-xs"
+                        >
+                          <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                            <Instagram className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="text-left overflow-hidden">
+                            <span className="text-[10px] text-white/80 block font-medium">Official Insta</span>
+                            <span className="text-xs font-black tracking-tight truncate block">
+                              {selectedItem.instagramHandle || '@uv_events.co'}
+                            </span>
+                          </div>
+                        </a>
+                      </div>
+
+                      {/* Event Key Specs (Artists, Venue, Timing) */}
+                      <div className="p-4 rounded-2xl bg-white border border-slate-100 space-y-3 shadow-xs">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center">
+                            <Calendar className="w-3.5 h-3.5 text-pink-600 mr-1.5" />
+                            Date & Timing
+                          </span>
+                          <span className="text-xs font-black text-pink-700 bg-pink-50 px-2 py-0.5 rounded-full">
+                            {selectedItem.dateTime || 'Sunday, 22nd Nov • 05:00 PM'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-start space-x-2 text-xs text-slate-700">
+                          <MapPin className="w-4 h-4 text-[#5128E8] shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-extrabold text-slate-900 block">The Mills - Raja Bahadur City Centre</span>
+                            <span className="text-slate-500 text-[11px] leading-tight">
+                              {selectedItem.venue || 'B Wing, 2nd Floor, The Mills, Pune'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="p-2.5 rounded-xl bg-purple-50/70 border border-purple-100 space-y-1">
+                          <div className="flex items-center space-x-1.5 text-purple-900 font-black text-[11px]">
+                            <Music className="w-3.5 h-3.5 text-purple-600" />
+                            <span>Headliner DJs & Curation</span>
+                          </div>
+                          <p className="text-[11px] text-purple-950 font-bold">
+                            Feat. DJ Naaïro & DJ Nyx
+                          </p>
+                          <p className="text-[10px] text-purple-700">
+                            Curated by House of Desi, kiki (India's #1 Sundowner), ACE Entertainment & UV Events.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Pass Options & Pricing Tiers */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center">
+                            <Ticket className="w-3.5 h-3.5 text-[#5128E8] mr-1.5" />
+                            Passes & Table Reservation
+                          </h3>
+                          <span className="text-[10px] text-pink-600 font-bold bg-pink-50 px-2 py-0.5 rounded-full">
+                            Zero Platform Fee
+                          </span>
+                        </div>
+
+                        {(selectedItem.pricing || [
+                          { type: 'Early Bird Stag Pass', price: 499, note: 'Includes cover beverage', save: 'Fast Filling' },
+                          { type: 'Couple Entry Pass', price: 899, note: 'Full cover charge included', save: 'Save ₹100' },
+                          { type: 'VIP Table / Bottle Service', price: 3999, note: 'Dedicated table + starters & bottle', save: 'Exclusive' }
+                        ]).map((tier, idx) => (
+                          <div key={idx} className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs flex items-center justify-between hover:border-pink-300 transition-all">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center space-x-1.5">
+                                <span className="text-xs font-bold text-slate-900">{tier.type}</span>
+                                {tier.save && (
+                                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.2 rounded">
+                                    {tier.save}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-slate-400 block">{tier.note}</span>
+                            </div>
+                            <div className="text-right shrink-0 ml-3">
+                              <p className="text-sm font-black text-[#5128E8]">₹{tier.price}</p>
+                              <button 
+                                onClick={() => {
+                                  const waPhone = selectedItem.phone || '917058547559';
+                                  const msg = `Hi UV Events! I want to enquire/book "${tier.type}" (₹${tier.price}) for Ex Ki Shaadi on Sunday 22nd Nov.`;
+                                  recordInquiry({
+                                    service: 'Parties & Events',
+                                    title: `${selectedItem.name} - ${tier.type}`,
+                                    phone: waPhone,
+                                    timestamp: new Date().toISOString()
+                                  });
+                                  window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                                }}
+                                className="text-[11px] font-black text-pink-600 hover:text-pink-700 bg-pink-50 hover:bg-pink-100 px-2.5 py-1 rounded-lg transition mt-0.5 flex items-center space-x-1"
+                              >
+                                <span>Reserve</span>
+                                <ChevronRight className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Dress Code & Compliance Guidelines */}
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5 text-xs">
+                        <div className="flex items-center space-x-1.5 text-slate-900 font-extrabold text-[11px] uppercase tracking-wider">
+                          <Shield className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Entry & Venue Guidelines</span>
+                        </div>
+                        <ul className="space-y-1.5 text-slate-600 text-[11px]">
+                          <li className="flex items-start space-x-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-pink-600 shrink-0 mt-0.5" />
+                            <span><strong className="text-slate-800">Dress Code:</strong> (SHAADI FITS ONLY) — Kurta, Sherwani, Lehenga, or Wedding Party glam.</span>
+                          </li>
+                          <li className="flex items-start space-x-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                            <span><strong className="text-slate-800">Age & ID Policy:</strong> DigiLocker Government ID mandatory for 21+ entry verification.</span>
+                          </li>
+                          <li className="flex items-start space-x-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 shrink-0 mt-0.5" />
+                            <span><strong className="text-slate-800">Timings:</strong> Sunday Sundowner gates open at 05:00 PM onwards.</span>
+                          </li>
+                          <li className="flex items-start space-x-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-purple-600 shrink-0 mt-0.5" />
+                            <span><strong className="text-slate-800">Direct Connect:</strong> WhatsApp / Call 7058547559 • Instagram @uv_events.co</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}
 
             {/* SCREEN 4: BOOKING CONFIRMED */}
             {currentScreen === 'confirmed' && (
-              <div className="p-6 flex flex-col items-center justify-center min-h-[600px] text-center space-y-6">
+              <div className="p-4 sm:p-6 flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4 md:min-h-[400px]">
                 <div className="w-20 h-20 rounded-full bg-[#EAE5FF] border-4 border-[#5128E8]/30 flex items-center justify-center shadow-lg relative animate-bounce">
                   <Check className="w-10 h-10 text-[#5128E8] stroke-[3]" />
                   <span className="absolute -top-1 -right-1 text-xl">🎉</span>

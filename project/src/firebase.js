@@ -42,7 +42,7 @@ export function subscribeToServices(onUpdate) {
         seedFirestore().catch(() => {});
         return onUpdate(CATEGORY_DATA);
       }
-      const remote = { mess: [], laundry: [], gym: [], flats: [] };
+      const remote = { mess: [], laundry: [], gym: [], flats: [], parties: [] };
       snapshot.docs.forEach(d => {
         const item = { id: d.id, ...d.data() };
         if (remote[item.category]) {
@@ -50,9 +50,9 @@ export function subscribeToServices(onUpdate) {
         }
       });
       // Ensure all categories have at least mock data if remote category was empty
-      for (const cat of ['mess', 'laundry', 'gym', 'flats']) {
+      for (const cat of ['mess', 'laundry', 'gym', 'flats', 'parties']) {
         if (!remote[cat] || remote[cat].length === 0) {
-          remote[cat] = CATEGORY_DATA[cat];
+          remote[cat] = CATEGORY_DATA[cat] || [];
         }
       }
       onUpdate(remote);
@@ -69,8 +69,8 @@ export function subscribeToServices(onUpdate) {
 // Seed firestore with initial Lohegaon vendors
 export async function seedFirestore() {
   try {
-    for (const cat of ['mess', 'laundry', 'gym', 'flats']) {
-      for (const item of CATEGORY_DATA[cat]) {
+    for (const cat of ['mess', 'laundry', 'gym', 'flats', 'parties']) {
+      for (const item of (CATEGORY_DATA[cat] || [])) {
         await setDoc(doc(db, 'services', item.id), item, { merge: true });
       }
     }

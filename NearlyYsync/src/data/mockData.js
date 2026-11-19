@@ -5,6 +5,7 @@ export const SERVICES_MENU = [
   { id: 'laundry', name: 'Laundry & Dry Cleaning', icon: 'Shirt', count: '3 services', starting: '₹10/kg' },
   { id: 'gym', name: 'Gym & Fitness', icon: 'Dumbbell', count: '3 centers', starting: '₹800/mo' },
   { id: 'flats', name: 'Flats & PG', icon: 'Home', count: '4 verified', starting: '₹5,500/mo' },
+  { id: 'parties', name: 'Parties & Events', icon: 'Sparkles', count: '1 featured gig', starting: '₹499/pass' },
 ];
 
 export const CATEGORY_DATA = {
@@ -469,6 +470,46 @@ export const CATEGORY_DATA = {
       ],
       photos: [
         'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&auto=format&fit=crop&q=80',
+      ]
+    }
+  ],
+  parties: [
+    {
+      id: 'party-ex-ki-shaadi',
+      name: 'Ex Ki Shaadi — The Ultimate Move-On Night!',
+      category: 'parties',
+      locality: 'The Mills, Raja Bahadur City Centre, Pune',
+      venue: 'B Wing, 2nd Floor, The Mills - Raja Bahadur City Centre, Pune',
+      distance: '~6.8 km away (18 min)',
+      rating: 4.9,
+      reviewsCount: '890+',
+      priceDisplay: 'Passes from ₹499',
+      startingPrice: 499,
+      dateTime: 'Sunday, 22nd Nov • 05:00 PM Onwards',
+      genre: 'Bollywood + Desi Commercial Sundowner',
+      organizer: 'UV Events & Entertainment',
+      instagram: 'https://www.instagram.com/uv_events.co/',
+      instagramHandle: '@uv_events.co',
+      phone: '917058547559',
+      infoline: '7058547559',
+      isOpen: true,
+      timeLeft: 'Sunday Sundowner • Limited Student Passes',
+      coverImage: '/ex-ki-shaadi.jpg',
+      description: 'CLOSURE LOOKS BETTER ON THE DANCE FLOOR!\n\nCurated by House of Desi & India\'s #1 Sundowner Kiki, in official collaboration with UV Events & Entertainment.\n\nFeaturing DJ Naaïro & DJ Nyx bringing non-stop high-energy Bollywood, Punjabi, and commercial club anthems.\n\n• Dress Code: (SHAADI FITS ONLY) — Kurta, Sherwani, Lehenga, Wedding Drip!\n• Mandatory: DigiLocker & Communication for 21+ required at entry.',
+      tags: ['Shaadi Fits Only', 'Sunday Sundowner', 'DJ Naaïro', 'DJ Nyx', 'DigiLocker 21+', 'The Mills Pune', 'UV Events'],
+      pricing: [
+        { type: 'Early Bird Stag Pass', price: 499, note: 'Includes cover beverage', save: 'Fast Filling' },
+        { type: 'Couple Entry Pass', price: 899, note: 'Full cover charge included', save: 'Save ₹100' },
+        { type: 'VIP Table / Bottle Service', price: 3999, note: 'Dedicated table + starters & bottle (Enquire via WhatsApp)', save: 'Exclusive' }
+      ],
+      rules: [
+        'Dress Code: (SHAADI FITS ONLY) — Wear your best ethnic/wedding party outfit',
+        'DigiLocker Govt ID mandatory for 21+ age verification at entry gate',
+        'Sunday Sundowner gates open sharp at 05:00 PM',
+        'Infoline & Reservations: 7058547559 • Instagram: @uv_events.co'
+      ],
+      gallery: [
+        '/ex-ki-shaadi.jpg'
       ]
     }
   ]

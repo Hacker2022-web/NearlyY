@@ -40,6 +40,16 @@ body {
   --sar: env(safe-area-inset-right, 0px);
 }
 
+/* GSAP animation performance helpers */
+.hero-slide,
+.service-card,
+.detail-view-container,
+.service-tab {
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+}
+
+/* Safe area padding utilities for notched/pill modern devices */
 .safe-top {
   padding-top: max(env(safe-area-inset-top, 0px), 12px);
 }

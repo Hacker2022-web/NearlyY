@@ -6,7 +6,7 @@ import {
   MessageCircle, ExternalLink, RefreshCw, Zap, Shield, Users, 
   Calendar, Star, ChevronRight, X, ArrowUpRight, Check, Eye,
   SlidersHorizontal, Smartphone, Monitor, UploadCloud, Image as ImageIcon,
-  Info, ChevronLeft
+  Info, ChevronLeft, Sparkles
 } from 'lucide-react';
 import { 
   subscribeToServices, fetchServicesFromFirebase, addServiceListing, updateServiceListing, 
@@ -122,7 +122,12 @@ export default function App() {
     gymAC: true,
     flatRent: 6500,
     flatDeposit: 5000,
-    flatSharing: 'Double Sharing'
+    flatSharing: 'Double Sharing',
+    eventVenue: '',
+    eventDateTime: 'Saturday • 8:00 PM',
+    eventGenre: 'Bollywood Commercial + EDM',
+    eventOrganizer: 'Campus Events',
+    eventStartingPrice: 399
   });
 
   const [tempImageUrl, setTempImageUrl] = useState('');
@@ -253,7 +258,12 @@ export default function App() {
       gymAC: true,
       flatRent: item.price || 6500,
       flatDeposit: item.deposit || 5000,
-      flatSharing: item.sharing || 'Double Sharing'
+      flatSharing: item.sharing || 'Double Sharing',
+      eventVenue: item.venue || '',
+      eventDateTime: item.dateTime || 'Saturday • 8:00 PM',
+      eventGenre: item.genre || 'Bollywood + EDM',
+      eventOrganizer: item.organizer || '',
+      eventStartingPrice: item.startingPrice || 399
     });
     setShowAddModal(true);
   };
@@ -392,6 +402,25 @@ export default function App() {
         price: Number(formData.flatRent),
         deposit: Number(formData.flatDeposit),
         sharing: formData.flatSharing
+      };
+    } else if (formData.category === 'parties') {
+      payload = {
+        ...payload,
+        venue: formData.eventVenue || formData.locality,
+        dateTime: formData.eventDateTime || 'Saturday • 8:00 PM',
+        genre: formData.eventGenre || 'Bollywood + EDM',
+        organizer: formData.eventOrganizer || 'Campus Events Partner',
+        startingPrice: Number(formData.eventStartingPrice) || 399,
+        priceDisplay: formData.priceDisplay || `Passes from ₹${formData.eventStartingPrice || 399}`,
+        tags: [formData.eventGenre || 'Party', 'College ID Mandatory', 'Student Passes'],
+        pricing: [
+          { type: 'Early Bird Stag', price: Number(formData.eventStartingPrice) || 399, note: 'Entry pass', save: 'Selling Fast' },
+          { type: 'Couple Entry', price: Math.round(Number(formData.eventStartingPrice || 399) * 1.75), note: 'Couple access', save: 'Save ₹100' }
+        ],
+        rules: [
+          'College ID mandatory at gate',
+          'Strictly 18+ only'
+        ]
       };
     }
 
@@ -571,7 +600,8 @@ export default function App() {
                     { id: 'mess', label: '🍲 Mess' },
                     { id: 'laundry', label: '👕 Laundry' },
                     { id: 'gym', label: '🏋️ Gym' },
-                    { id: 'flats', label: '🏡 Flats/PG' }
+                    { id: 'flats', label: '🏡 Flats/PG' },
+                    { id: 'parties', label: '🎉 Parties' }
                   ].map(c => (
                     <button
                       key={c.id}
@@ -630,9 +660,39 @@ export default function App() {
                               </p>
                             </div>
                             <span className="text-xs font-extrabold text-[#5128E8]">
-                              {item.category === 'flats' ? `₹${item.price}/mo` : item.category === 'mess' ? '₹90/thali' : item.category === 'laundry' ? '₹80/kg' : '₹999/mo'}
+                              {item.priceDisplay || (item.category === 'flats' ? `₹${item.price}/mo` : item.category === 'mess' ? '₹90/thali' : item.category === 'laundry' ? '₹80/kg' : item.category === 'parties' ? 'From ₹399' : '₹999/mo')}
                             </span>
                           </div>
+
+                          {/* Party & Gig Details Highlight */}
+                          {item.category === 'parties' && (
+                            <div className="bg-pink-50/80 p-2.5 rounded-xl border border-pink-100 text-[10px] space-y-1">
+                              {item.dateTime && (
+                                <p className="font-bold text-pink-900 flex items-center">
+                                  <Calendar className="w-3 h-3 text-pink-600 mr-1" />
+                                  {item.dateTime}
+                                </p>
+                              )}
+                              {item.venue && (
+                                <p className="text-slate-600 font-medium truncate">Venue: <strong className="text-slate-800">{item.venue}</strong></p>
+                              )}
+                              <div className="flex flex-wrap gap-1.5 pt-1 border-t border-pink-100 text-[9px]">
+                                {item.infoline && (
+                                  <span className="bg-slate-900 text-white font-bold px-2 py-0.5 rounded-md flex items-center">
+                                    📞 Infoline: {item.infoline}
+                                  </span>
+                                )}
+                                {item.instagramHandle && (
+                                  <span className="bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-2 py-0.5 rounded-md flex items-center">
+                                    📸 {item.instagramHandle}
+                                  </span>
+                                )}
+                                <span className="bg-rose-100 text-rose-800 font-extrabold px-1.5 py-0.5 rounded">
+                                  SHAADI FITS ONLY
+                                </span>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Description Snippet */}
                           {item.description && (
@@ -957,6 +1017,7 @@ export default function App() {
                   <option value="laundry">👕 Laundry & Dry Cleaning</option>
                   <option value="gym">🏋️ Gym & Fitness</option>
                   <option value="flats">🏡 Flats & PG</option>
+                  <option value="parties">🎉 Parties & Campus Events</option>
                 </select>
               </div>
 
@@ -1175,6 +1236,71 @@ export default function App() {
                         value={formData.flatDeposit} 
                         onChange={(e) => setFormData({ ...formData, flatDeposit: e.target.value })}
                         className="w-full p-1.5 rounded-lg border text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {formData.category === 'parties' && (
+                <div className="p-3 bg-pink-50 rounded-2xl border border-pink-200 space-y-2.5">
+                  <div className="flex items-center space-x-1.5 text-pink-900 font-bold text-[11px]">
+                    <Sparkles className="w-3.5 h-3.5 text-pink-600" />
+                    <span>Party & Event Details</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-700">Date & Timing</label>
+                      <input 
+                        type="text" 
+                        value={formData.eventDateTime || ''} 
+                        onChange={(e) => setFormData({ ...formData, eventDateTime: e.target.value })}
+                        placeholder="e.g. Saturday • 8:00 PM"
+                        className="w-full p-1.5 rounded-lg border text-xs bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-700">Starting Pass (₹)</label>
+                      <input 
+                        type="number" 
+                        value={formData.eventStartingPrice || 399} 
+                        onChange={(e) => setFormData({ ...formData, eventStartingPrice: e.target.value })}
+                        className="w-full p-1.5 rounded-lg border text-xs bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-700">Venue / Lounge</label>
+                    <input 
+                      type="text" 
+                      value={formData.eventVenue || ''} 
+                      onChange={(e) => setFormData({ ...formData, eventVenue: e.target.value })}
+                      placeholder="e.g. The Mill / High Spirits, Viman Nagar"
+                      className="w-full p-1.5 rounded-lg border text-xs bg-white"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-700">Music / Genre</label>
+                      <input 
+                        type="text" 
+                        value={formData.eventGenre || ''} 
+                        onChange={(e) => setFormData({ ...formData, eventGenre: e.target.value })}
+                        placeholder="e.g. Bollywood + EDM"
+                        className="w-full p-1.5 rounded-lg border text-xs bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-700">Organizer Name</label>
+                      <input 
+                        type="text" 
+                        value={formData.eventOrganizer || ''} 
+                        onChange={(e) => setFormData({ ...formData, eventOrganizer: e.target.value })}
+                        placeholder="e.g. Campus Pulse"
+                        className="w-full p-1.5 rounded-lg border text-xs bg-white"
                       />
                     </div>
                   </div>
