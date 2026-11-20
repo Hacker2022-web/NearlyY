@@ -409,12 +409,12 @@ export function subscribeToBookings(userEmail, onUpdate) {
 // ============================================================
 
 export const DEFAULT_APP_CONFIG = {
-  latestVersion: "1.0.1",
+  latestVersion: "1.0.2",
   minVersion: "1.0.0",
   apkUrl: "https://github.com/Hacker2022-web/NearlyY/raw/main/APKs/NearlyY.apk",
-  bundleUrl: "",
-  bundleVersion: "",
-  changelog: "• Capgo Live Over-The-Air (OTA) updates\n• Direct in-app APK installer with 1-tap download\n• Fixed Flats & PG image display & category routing\n• Full-screen swipe-to-back & system gesture navigation\n• Lohegaon campus vendor sync with NearlyYsync",
+  bundleUrl: "https://github.com/Hacker2022-web/NearlyY/raw/main/APKs/NearlyY-bundle.zip",
+  bundleVersion: "1.0.2",
+  changelog: "• Removed quick sign-in demo entry for authentic student onboarding\n• Performance & security updates\n• Capgo Live OTA background sync",
   forceUpdate: false,
   updatedAt: new Date().toISOString()
 };

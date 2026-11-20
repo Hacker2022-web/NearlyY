@@ -24,7 +24,7 @@ import {
   isVersionNewer, downloadAndApplyBundle, reloadApp, notifyAppReady 
 } from './updater';
 
-export const APP_VERSION = '1.0.1';
+export const APP_VERSION = '1.0.2';
 
 // Curated Lohegaon Campus & Living Slides for Front Page
 const HERO_SLIDES = [
@@ -1026,7 +1026,6 @@ export default function App() {
             {onboardingStep === 1 && (
               <OnboardingWelcome 
                 onStart={() => setOnboardingStep(2)}
-                onQuickEntry={() => finishOnboarding(USER_PROFILE)}
                 onGoogleSignIn={handleGoogleSignIn}
                 isGoogleLoading={isGoogleLoading}
               />
@@ -1039,7 +1038,6 @@ export default function App() {
                 onNext={() => setOnboardingStep(3)}
                 userProfile={userProfile}
                 onUpdateProfile={(updates) => setUserProfile(p => ({ ...p, ...updates }))}
-                onQuickEntry={() => finishOnboarding(USER_PROFILE)}
               />
             )}
             {onboardingStep === 3 && (
@@ -2528,7 +2526,7 @@ export default function App() {
 // Onboarding Step Components
 // ============================================================
 
-function OnboardingWelcome({ onStart, onQuickEntry, onGoogleSignIn, isGoogleLoading }) {
+function OnboardingWelcome({ onStart, onGoogleSignIn, isGoogleLoading }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6 px-4">
       <div className="w-20 h-20 rounded-2xl bg-brand-100 flex items-center justify-center mx-auto shadow-xs">
@@ -2556,17 +2554,13 @@ function OnboardingWelcome({ onStart, onQuickEntry, onGoogleSignIn, isGoogleLoad
           <Sparkles className="w-5 h-5" />
           Get Started
         </button>
-        <button onClick={onQuickEntry} className="w-full py-3 rounded-xl bg-slate-50 border border-slate-200/60 text-slate-700 font-semibold text-xs hover:bg-slate-100 active:bg-slate-200 transition-colors flex items-center justify-center gap-2">
-          <Zap className="w-4 h-4 text-amber-500" />
-          Quick Student Demo (ADYPU / Pune)
-        </button>
       </div>
       <p className="text-xs text-slate-400 max-w-xs mx-auto">By continuing, you agree to our Terms of Service & Privacy Policy</p>
     </div>
   );
 }
 
-function OnboardingGoogleSignIn({ onGoogleSignIn, isLoading, onBack, onNext, userProfile, onUpdateProfile, onQuickEntry }) {
+function OnboardingGoogleSignIn({ onGoogleSignIn, isLoading, onBack, onNext, userProfile, onUpdateProfile }) {
   const [manualName, setManualName] = useState(userProfile?.name && userProfile.name !== 'Student' ? userProfile.name : '');
   const isAlreadySignedIn = Boolean(userProfile?.email);
 
@@ -2657,14 +2651,6 @@ function OnboardingGoogleSignIn({ onGoogleSignIn, isLoading, onBack, onNext, use
             </div>
           </>
         )}
-
-        <button 
-          onClick={onQuickEntry} 
-          className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-        >
-          <Zap className="w-3.5 h-3.5 text-amber-500" />
-          <span>Quick Demo Entry (ADYPU Pune)</span>
-        </button>
       </div>
 
       <div className="text-center pt-2">
