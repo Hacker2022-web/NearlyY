@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NearlyY • Workshop 3 Pitch Deck (Idea Validation & Experimentation)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+      overflow: hidden;
+    }
+    .slide {
+      display: none;
+      height: 100vh;
+      width: 100vw;
+      padding: 2.5rem 3.5rem;
+      box-sizing: border-box;
+      opacity: 0;
+      transition: opacity 0.25s ease-in-out;
+    }
+    .slide.active {
+      display: flex;
+      flex-direction: column;
+      opacity: 1;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .card-glass {
+      background: rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .card-glass-light {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #e2e8f0;
+      color: #0f172a;
+    }
+    @media print {
+      body {
+        overflow: visible;
+        background: white;
+        color: black;
+      }
+      .slide {
+        display: flex !important;
+        opacity: 1 !important;
+        page-break-after: always;
+        height: 100vh;
+        width: 100vw;
+        padding: 2rem;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="select-none">
+
+  <!-- TOP BAR / CONTROLS -->
+  <header class="no-print fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-3.5 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 text-xs">
+    <div class="flex items-center gap-3">
+      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span class="font-bold tracking-wider text-indigo-400 uppercase">NearlyY • Workshop 3 Deck</span>
+      <span class="text-slate-500">•</span>
+      <span class="text-slate-400">upGrad School of Technology (Pune Campus)</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="https://drive.google.com/drive/u/3/folders/1OJAp8ozetiOnlbrvikD1-AOkdYcMPbma" target="_blank" class="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white font-medium border border-indigo-500/40 flex items-center gap-1.5 transition">
+        <i data-lucide="folder-check" class="w-3.5 h-3.5"></i>
+        <span>Proof Folder (15 Interviews)</span>
+      </a>
+      <div class="bg-slate-800 px-3 py-1.5 rounded-lg text-slate-300 font-mono font-medium flex items-center gap-2">
+        <span id="slide-num">1</span>
+        <span class="text-slate-500">/</span>
+        <span id="slide-total">11</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <button onclick="prevSlide()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 active:scale-95 transition" title="Previous (Left Arrow)">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </button>
+        <button onclick="nextSlide()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 active:scale-95 transition" title="Next (Right Arrow)">
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+        <button onclick="toggleFullScreen()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 active:scale-95 transition ml-2" title="Fullscreen (F)">
+          <i data-lucide="maximize" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== SLIDE 1: COVER ==================== -->
+  <section class="slide active justify-center items-start pt-16">
+    <div class="max-w-6xl w-full mx-auto space-y-6">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 text-xs font-semibold uppercase tracking-wider">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i>
+        <span>upGrad School of Technology • Workshop 3: Idea Validation & Experimentation</span>
+      </div>
+
+      <div class="space-y-2">
+        <h1 class="text-6xl font-extrabold tracking-tight text-white">NearlyY</h1>
+        <p class="text-2xl font-bold text-emerald-400">Hyper-Local Student Living & Essential Services Infrastructure</p>
+        <p class="text-slate-400 text-base max-w-3xl leading-relaxed">
+          Brief: <span class="text-slate-200 font-medium">"Sell something that doesn't exist yet."</span> • Pune Campus (Lohegaon / ADYPU cluster) • Defense with Ashank Bhandari
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6 pt-6">
+        <div class="card-glass p-6 rounded-2xl border border-slate-700/60 space-y-2">
+          <p class="text-xs uppercase font-bold text-indigo-400 tracking-wider">Founder & Team Lead</p>
+          <p class="text-2xl font-bold text-white">Sahil Dehadray</p>
+          <p class="text-sm text-slate-300">Ajeenkya DY Patil University (ADYPU), Lohegaon, Pune</p>
+          <p class="text-xs text-slate-400 pt-1">Role: Full-Stack Builder, Customer Discovery, and Porwal Road Field Sales Lead</p>
+        </div>
+
+        <div class="card-glass p-6 rounded-2xl border border-emerald-500/40 bg-emerald-950/20 space-y-2">
+          <div class="flex items-center justify-between">
+            <p class="text-xs uppercase font-bold text-emerald-400 tracking-wider">Verified Evidence Folder</p>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">100% RAW PROOF</span>
+          </div>
+          <p class="text-xl font-bold text-white">15 Recorded Field Interviews & UPI Proof</p>
+          <p class="text-xs text-slate-300">Folder: <span class="font-mono text-emerald-300">Interviews-15-People</span> (14 High-Res Videos • 1.8+ GB Real Footage)</p>
+          <a href="https://drive.google.com/drive/u/3/folders/1OJAp8ozetiOnlbrvikD1-AOkdYcMPbma" target="_blank" class="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-semibold underline pt-1">
+            <span>Open Google Drive Proof Folder</span>
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 2: STEP 1 - PROBLEM STATEMENT ==================== -->
+  <section class="slide pt-16">
+    <div class="max-w-6xl w-full mx-auto space-y-5">
+      <div>
+        <p class="text-xs font-bold uppercase text-indigo-400 tracking-wider">Step 1 • 6 to 12 Nov</p>
+        <h2 class="text-3xl font-extrabold text-white">Problem Statement & The 5-Pillar Breakdown</h2>
+        <p class="text-sm text-slate-400">Class Template: Specific enough that a stranger could go to Lohegaon and verify it.</p>
+      </div>
+
+      <!-- Filled Class Template Box -->
+      <div class="p-5 rounded-2xl bg-indigo-950/40 border-2 border-indigo-500/40 space-y-2">
+        <p class="text-xs font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+          <i data-lucide="check-circle" class="w-4 h-4 text-indigo-400"></i>
+          Official Class Template Formulation:
+        </p>
+        <p class="text-sm text-slate-200 leading-relaxed font-medium">
+          <span class="text-indigo-400 font-bold">[Outstation college students moving to Lohegaon/ADYPU]</span> is trying to 
+          <span class="text-indigo-400 font-bold">[find reliable, affordable mess, laundry, and flats/PG within 1.5 km of campus]</span> but 
+          <span class="text-rose-400 font-bold">[local micro-vendors have zero digital presence, phone numbers on Google are dead, and brokers charge 1-month upfront brokerage]</span>, 
+          so right now they 
+          <span class="text-amber-400 font-bold">[walk 5-8 km in the heat asking seniors, click photos of pole posters, or join unmoderated WhatsApp spam groups]</span>, 
+          which is bad because 
+          <span class="text-rose-400 font-bold">[they waste 20+ hours, lose ₹3,000–₹8,000 in unfair fees, and get locked into unhygienic 30-day meal passes they quit after 3 days]</span>.
+        </p>
+      </div>
+
+      <!-- 5 Pillars -->
+      <div class="grid grid-cols-5 gap-3.5 pt-1">
+        <div class="card-glass p-4 rounded-xl border border-rose-500/30 bg-rose-950/10 space-y-2">
+          <p class="text-xs font-bold text-rose-400 uppercase">1. Complaint</p>
+          <p class="text-xs text-slate-300">"Google Maps pe number switch off rehta hai. Broker room dikhane ka 1 mahine ka rent maangta hai."</p>
+        </div>
+        <div class="card-glass p-4 rounded-xl border border-amber-500/30 bg-amber-950/10 space-y-2">
+          <p class="text-xs font-bold text-amber-400 uppercase">2. Problem</p>
+          <p class="text-xs text-slate-300">Extreme information asymmetry & zero transparent rate cards within walking distance of college gates.</p>
+        </div>
+        <div class="card-glass p-4 rounded-xl border border-indigo-500/30 bg-indigo-950/10 space-y-2">
+          <p class="text-xs font-bold text-indigo-400 uppercase">3. Insight</p>
+          <p class="text-xs text-slate-300">Students don't need Zomato or Magicbricks. They need a verified 1.5 km campus cheat-sheet with direct WhatsApp contacts.</p>
+        </div>
+        <div class="card-glass p-4 rounded-xl border border-emerald-500/30 bg-emerald-950/10 space-y-2">
+          <p class="text-xs font-bold text-emerald-400 uppercase">4. Solution</p>
+          <p class="text-xs text-slate-300">NearlyY: Hyper-local directory with transparent menus, zero-brokerage badges, and 1-tap WhatsApp leads.</p>
+        </div>
+        <div class="card-glass p-4 rounded-xl border border-slate-700 bg-slate-800/40 space-y-2">
+          <p class="text-xs font-bold text-slate-300 uppercase">5. Signal</p>
+          <p class="text-xs text-slate-400">Students and shopkeepers already use makeshift WhatsApp groups to find leads, but suffer from spam and fraud.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 3: STEP 2 - MAP ASSUMPTIONS ==================== -->
+  <section class="slide pt-16">
+    <div class="max-w-6xl w-full mx-auto space-y-5">
+      <div>
+        <p class="text-xs font-bold uppercase text-indigo-400 tracking-wider">Step 2 • 6 to 12 Nov</p>
+        <h2 class="text-3xl font-extrabold text-white">Map Your Assumptions & Circled Riskiest Guess</h2>
+        <p class="text-sm text-slate-400">10+ hypotheses across Want It, Pay For It, and Can We Deliver It. Tie broken on money.</p>
+      </div>
+
+      <div class="grid grid-cols-3 gap-5">
+        <!-- Want It -->
+        <div class="card-glass p-5 rounded-2xl border border-slate-700 space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs">1</span>
+            <h3 class="text-sm font-bold uppercase text-indigo-400">Want It (Demand)</h3>
+          </div>
+          <ul class="text-xs text-slate-300 space-y-2 list-disc pl-4">
+            <li>Students will use a curated campus directory over physical walking in heat.</li>
+            <li>Transparent rate cards & hygiene ratings matter more than generic star reviews.</li>
+            <li>Students prefer 1-tap WhatsApp chat with shopkeepers over in-app checkout.</li>
+            <li>New admissions & 1st-year hostellers experience the highest daily friction.</li>
+          </ul>
+        </div>
+
+        <!-- Pay For It (Riskiest) -->
+        <div class="card-glass p-5 rounded-2xl border-2 border-rose-500 bg-rose-950/20 space-y-3 relative">
+          <div class="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-rose-600 text-white font-bold text-[10px] tracking-wider uppercase">
+            ★ Circled Riskiest Guess
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-xs">2</span>
+            <h3 class="text-sm font-bold uppercase text-rose-400">Pay For It (Supply)</h3>
+          </div>
+          <ul class="text-xs text-slate-200 space-y-2 list-disc pl-4">
+            <li class="font-bold text-rose-300">Local micro-merchants (Mess, Laundry, Gym, PG) will pay an upfront monthly listing fee (₹99 - ₹199/mo) for verified student WhatsApp leads before we have massive traffic.</li>
+            <li>Merchants prefer a flat subscription over 20-30% aggregator commission cuts.</li>
+            <li>Merchants will pay instantly via UPI upon in-person onboarding.</li>
+          </ul>
+        </div>
+
+        <!-- Can We Deliver It -->
+        <div class="card-glass p-5 rounded-2xl border border-slate-700 space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">3</span>
+            <h3 class="text-sm font-bold uppercase text-emerald-400">Can We Deliver It (Ops)</h3>
+          </div>
+          <ul class="text-xs text-slate-300 space-y-2 list-disc pl-4">
+            <li>We can onboard 30+ merchants in a 1.5 km radius in under 3 days with field walk-ins.</li>
+            <li>A lightweight mobile PWA / APK provides faster conversion than heavy native apps.</li>
+            <li>WhatsApp pre-filled message templates provide verifiable lead attribution to shopkeepers.</li>
+            <li>Merchant rate cards can be updated seamlessly via cloud sync.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Why It Kills Callout -->
+      <div class="p-4 rounded-xl bg-slate-900 border border-amber-500/40 text-xs text-slate-300 flex items-start gap-3">
+        <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-400 shrink-0 mt-0.5"></i>
+        <div>
+          <span class="font-bold text-amber-300 uppercase">Why this kills the idea if wrong:</span>
+          Students are notorious non-paying customers. If local micro-businesses refuse to pay upfront (demanding 100% free discovery or commission on actual sales), the B2B SaaS model fails instantly. Our survival hinges entirely on merchant willingness to pay.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 4: STEP 3 - 15 INTERVIEWS ==================== -->
+  <section class="slide pt-16">
+    <div class="max-w-6xl w-full mx-auto space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold uppercase text-indigo-400 tracking-wider">Step 3 • 7 to 14 Nov</p>
+          <h2 class="text-2xl font-extrabold text-white">Talk to 15 Real People (Lohegaon Campus Hub, Pune)</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="px-3 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs">
+            PAIN COUNT: 12 / 15 (80.0%) • Strong Problem (8+)
+          </div>
+          <a href="https://drive.google.com/drive/u/3/folders/1OJAp8ozetiOnlbrvikD1-AOkdYcMPbma" target="_blank" class="px-3 py-1 rounded-lg bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 hover:text-white font-medium text-xs flex items-center gap-1 transition">
+            <i data-lucide="video" class="w-3.5 h-3.5"></i>
+            <span>14 Video Files in Drive</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Table Container -->
+      <div class="overflow-y-auto max-h-[64vh] rounded-xl border border-slate-700 bg-slate-900/60 shadow-xl">
+        <table class="w-full text-left text-[11px] border-collapse">
+          <thead>
+            <tr class="bg-slate-800 text-slate-300 border-b border-slate-700 sticky top-0">
+              <th class="py-2 px-2.5 w-10">#</th>
+              <th class="py-2 px-3 w-44">Stakeholder / Location</th>
+              <th class="py-2 px-3 w-56">Google Drive Evidence File</th>
+              <th class="py-2 px-3">Exact Verbatim Quote (Colloquial Spoken Words)</th>
+              <th class="py-2 px-2.5 text-center w-16">Pain?</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/80 text-slate-300">
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">1</td>
+              <td class="py-1.5 px-3 font-semibold text-white">Student (1st Yr Hosteller)</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">VID_20261110_181735179.mp4 (425MB)</td>
+              <td class="py-1.5 px-3 italic">"Bhai mess ka khana 3 din baad khaya nahi jata, but deposit de diya toh fas gaya."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-emerald-400">YES</td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">2</td>
+              <td class="py-1.5 px-3 font-semibold text-white">Student (Flat Resident)</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">VID_20261110_203930010.mp4 (211MB)</td>
+              <td class="py-1.5 px-3 italic">"Broker ne 1 mahine ka rent brokerage maang liya bas room dikhane ke liye."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-emerald-400">YES</td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">3</td>
+              <td class="py-1.5 px-3 font-semibold text-white">Mess Owner (Porwal Rd)</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">VID_20261116_175108359.mp4 (297MB)</td>
+              <td class="py-1.5 px-3 italic">"Student log aate hain 2 din khate hain fir gayab, naya batch kab aaya pata nahi chalta."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-emerald-400">YES</td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">4</td>
+              <td class="py-1.5 px-3 font-semibold text-white">Student (Day Scholar)</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">VID_20261116_175714324.mp4 (41MB)</td>
+              <td class="py-1.5 px-3 italic">"Campus ke paas koi gym 1 mahine ka student discount nahi deta, 3 mahine advance maangte."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-emerald-400">YES</td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">5</td>
+              <td class="py-1.5 px-3 font-semibold text-white">Hosteller (1st Year)</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">VID_20261116_175737289.mp4 (27MB)</td>
+              <td class="py-1.5 px-3 italic">"Dhobi kapde ghumata hai aur time pe nahi deta, exam ke din shirt nahi mili thi."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-emerald-400">YES</td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">6</td>
+              <td class="py-1.5 px-3 font-semibold text-white">Laundry Owner (Lohegaon)</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">VID_20261116_180147119.mp4 (45MB)</td>
+              <td class="py-1.5 px-3 italic">"Pamphlet chapwate hain ₹2000 ka, aadha raste pe phek dete hain. Direct student chahiye."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-emerald-400">YES</td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">7</td>
+              <td class="py-1.5 px-3 font-semibold text-white">PG Owner (Air Force Stn)</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">VID_20261116_180753106.mp4 (325MB)</td>
+              <td class="py-1.5 px-3 italic">"Vacant beds rehte hain 2 mahine tak, broker har student pe 15 din ka commission leta hai."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-emerald-400">YES</td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">8</td>
+              <td class="py-1.5 px-3 font-semibold text-white">Female Student (Hostel)</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">VID_20261116_181048884.mp4 (179MB)</td>
+              <td class="py-1.5 px-3 italic">"Curfew safe hostel aur transparent mess menu online nahi milta, senior pe depend rehna padta hai."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-emerald-400">YES</td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">9</td>
+              <td class="py-1.5 px-3 font-semibold text-white">Student (3rd Yr Engg)</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">VID_20261116_182114493.mp4 (214MB)</td>
+              <td class="py-1.5 px-3 italic">"Mujhe daily tiffin trial chahiye, direct 30-day card nahi lena. Koi options compare nahi kar sakta."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-emerald-400">YES</td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">10</td>
+              <td class="py-1.5 px-3 font-semibold text-white">Gym Owner (Lohegaon)</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">VID_20261116_182805946.mp4 (19MB)</td>
+              <td class="py-1.5 px-3 italic">"Justdial waale 15,000 maangte hain saal ka, student aate nahi wahan se. Sasta local option chahiye."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-emerald-400">YES</td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">11</td>
+              <td class="py-1.5 px-3 font-semibold text-white">Student (Delhi Native)</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">VID_20261116_182918630.mp4 (49MB)</td>
+              <td class="py-1.5 px-3 italic">"Local shopkeepers ke saath language problem hoti hai, WhatsApp pe rate card mil jaye toh best."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-emerald-400">YES</td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">12</td>
+              <td class="py-1.5 px-3 font-semibold text-white">Tiffin Cloud Kitchen</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">VID_20261116_183246097.mp4 (35MB)</td>
+              <td class="py-1.5 px-3 italic">"WhatsApp groups pe spam karte hain roz menu, log mute kar dete hain. Dedicated listing chahiye."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-emerald-400">YES</td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">13</td>
+              <td class="py-1.5 px-3 font-semibold text-white">Student (Flat Sharing)</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">VID_20261116_184610533.mp4 (241MB)</td>
+              <td class="py-1.5 px-3 italic">"Room lene ke baad pata chala Wi-Fi aur paani ka issue hai, pehle review nahi tha."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-emerald-400">YES</td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">14</td>
+              <td class="py-1.5 px-3 font-semibold text-slate-400">Stationery & Xerox Owner</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">VID_20261116_184817278.mp4 (43MB)</td>
+              <td class="py-1.5 px-3 italic text-slate-400">"Daily 200 student aate hain, mess-PG ke baare mein poochte hain, hum guide karte hain."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-slate-500">NO</td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-1.5 px-2.5 font-mono text-slate-500">15</td>
+              <td class="py-1.5 px-3 font-semibold text-white">Student (Diwali Call)</td>
+              <td class="py-1.5 px-3 font-mono text-indigo-400">Call Log / Notes (Diwali)</td>
+              <td class="py-1.5 px-3 italic">"Home town me hoon, sem break ke baad aake naya flat dhoondna hai, authentic list nahi hai."</td>
+              <td class="py-1.5 px-2.5 text-center font-bold text-emerald-400">YES</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 5: STEP 4 - BET CARD ==================== -->
+  <section class="slide pt-16">
+    <div class="max-w-6xl w-full mx-auto space-y-5">
+      <div>
+        <p class="text-xs font-bold uppercase text-indigo-400 tracking-wider">Step 4 • Checkpoint: Sun 15 Nov</p>
+        <h2 class="text-3xl font-extrabold text-white">File Your Bet Card (Success & Failure Locked)</h2>
+        <p class="text-sm text-slate-400">Filed before selling. No moving goalposts. Real commitment criteria established.</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-5">
+        <div class="card-glass p-5 rounded-2xl border border-indigo-500/40 bg-indigo-950/20 space-y-2">
+          <p class="text-xs font-bold uppercase text-indigo-400">1. The Offer</p>
+          <ul class="text-xs text-slate-200 space-y-1.5 list-disc pl-4">
+            <li><span class="font-bold text-white">B2B Merchant Listing:</span> ₹99 Early-Bird Token Advance (Lock-in for 1st Month Listing on NearlyY with verified badge & direct student WhatsApp leads).</li>
+            <li><span class="font-bold text-white">B2C Student Promise:</span> 100% Free, verified 1.5 km campus radius directory with zero-brokerage flats and student discounts.</li>
+          </ul>
+        </div>
+
+        <div class="card-glass p-5 rounded-2xl border border-emerald-500/40 bg-emerald-950/20 space-y-2">
+          <p class="text-xs font-bold uppercase text-emerald-400">2. What Counts as a Commitment</p>
+          <ul class="text-xs text-slate-200 space-y-1.5 list-disc pl-4">
+            <li><span class="font-bold text-emerald-300">✓ STRICTLY COUNTED:</span> Real money! ₹99 UPI token advance or cash with UTR / payment receipt + signed vendor onboarding sheet.</li>
+            <li><span class="font-bold text-rose-300">✕ STRICTLY DISQUALIFIED:</span> Verbal praise ("bahut accha idea hai"), promises to pay later, website clicks without payment, or Instagram likes.</li>
+          </ul>
+        </div>
+
+        <div class="card-glass p-5 rounded-2xl border border-slate-700 space-y-2">
+          <p class="text-xs font-bold uppercase text-slate-300">3. Reach Target</p>
+          <ul class="text-xs text-slate-300 space-y-1.5 list-disc pl-4">
+            <li>Pitch 50+ local micro-merchants across Lohegaon, Porwal Road, and ADYPU perimeter face-to-face.</li>
+            <li>Two primary channels: Physical shop walk-ins and direct WhatsApp business outreach.</li>
+          </ul>
+        </div>
+
+        <div class="card-glass p-5 rounded-2xl border border-rose-500/40 bg-rose-950/20 space-y-2">
+          <p class="text-xs font-bold uppercase text-rose-400">4. Pass Mark vs Kill Mark</p>
+          <ul class="text-xs text-slate-200 space-y-1.5 list-disc pl-4">
+            <li><span class="font-bold text-emerald-400">PASS MARK:</span> 8 Paying Merchants (₹99 token advance paid upfront).</li>
+            <li><span class="font-bold text-rose-400">KILL MARK:</span> Fewer than 3 Paying Merchants.</li>
+            <li><span class="font-bold text-amber-400">MODIFY ZONE:</span> 3 to 7 Paying Merchants (pivot pricing or target category).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 6: STEP 5 - ONE-PAGE WEBSITE ==================== -->
+  <section class="slide pt-16">
+    <div class="max-w-6xl w-full mx-auto space-y-5">
+      <div>
+        <p class="text-xs font-bold uppercase text-indigo-400 tracking-wider">Step 5 • 1 Day</p>
+        <h2 class="text-3xl font-extrabold text-white">Build a One-Page Website & Mobile MVP</h2>
+        <p class="text-sm text-slate-400">Tested against our riskiest assumption with price, single button, and mandatory refund policy.</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <!-- Official Website Copy Block -->
+        <div class="card-glass p-6 rounded-2xl border border-indigo-500/40 space-y-4">
+          <p class="text-xs font-bold uppercase text-indigo-400 tracking-wider">Landing Page Specification</p>
+          <div class="space-y-1">
+            <p class="text-xs text-slate-400 font-semibold uppercase">Headline:</p>
+            <p class="text-lg font-bold text-white">"NearlyY: Hyper-Local Student Living & Essential Services Infrastructure"</p>
+          </div>
+          <div class="space-y-1">
+            <p class="text-xs text-slate-400 font-semibold uppercase">Price Tag:</p>
+            <p class="text-2xl font-bold text-emerald-400">₹99 / month <span class="text-xs text-slate-400 font-normal">(Early-Bird Listing Pass)</span></p>
+          </div>
+          <div class="space-y-1">
+            <p class="text-xs text-slate-400 font-semibold uppercase">Single Primary CTA Button:</p>
+            <button class="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 transition">
+              Claim Your Shop Listing & Start Getting Student Leads
+            </button>
+          </div>
+          <div class="p-3 rounded-xl bg-rose-950/40 border border-rose-500/40 text-xs font-bold text-rose-300">
+            Mandatory Class Line: "Launching soon. Any money paid is fully refundable."
+          </div>
+        </div>
+
+        <!-- Validated MVP Capabilities -->
+        <div class="card-glass p-6 rounded-2xl border border-slate-700 space-y-3">
+          <p class="text-xs font-bold uppercase text-emerald-400 tracking-wider">Functional MVP Features</p>
+          <div class="space-y-2.5 text-xs text-slate-300">
+            <p><strong class="text-white">🍛 Mess & Tiffin Hub:</strong> Daily verified thali menus, trial meal booking, transparent monthly passes from ₹70/meal.</p>
+            <p><strong class="text-white">👕 Laundry & Dry Clean:</strong> Wash & fold from ₹10/kg with hostel doorstep pickup tracking.</p>
+            <p><strong class="text-white">🏋️ Gym & Fitness:</strong> Flexible 1-month student passes from ₹800/mo without annual lock-in.</p>
+            <p><strong class="text-white">🏠 Flats & PG Co-living:</strong> Zero-brokerage direct landlord contacts and verified student reviews.</p>
+            <p><strong class="text-white">⚡ 1-Tap WhatsApp Lead Engine:</strong> Direct pre-filled lead messages sent to vendor phones.</p>
+            <p><strong class="text-white">📱 Android APK & Web App:</strong> Live compiled release APK with Capgo OTA background updates.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 7: STEP 6 - SALES FUNNEL ==================== -->
+  <section class="slide pt-16">
+    <div class="max-w-6xl w-full mx-auto space-y-5">
+      <div>
+        <p class="text-xs font-bold uppercase text-indigo-400 tracking-wider">Step 6 • 15 to 19 Nov • Part 1</p>
+        <h2 class="text-3xl font-extrabold text-white">Sell It to 50+ People: Multi-Channel Sales Funnel</h2>
+        <p class="text-sm text-slate-400">Pitched commercial shopkeepers on Porwal Road and Lohegaon student hub.</p>
+      </div>
+
+      <!-- Funnel Cards -->
+      <div class="grid grid-cols-3 gap-5">
+        <div class="card-glass p-6 rounded-2xl border border-slate-700 space-y-1">
+          <p class="text-xs font-bold uppercase text-slate-400">1. Saw It (Pitched)</p>
+          <p class="text-5xl font-extrabold text-white">52</p>
+          <p class="text-xs text-indigo-400 font-semibold">100% of Reach Target</p>
+          <p class="text-[11px] text-slate-400 pt-2">Walk-ins & direct calls to local shopkeepers across 4 categories.</p>
+        </div>
+
+        <div class="card-glass p-6 rounded-2xl border border-amber-500/40 bg-amber-950/10 space-y-1">
+          <p class="text-xs font-bold uppercase text-amber-400">2. Stopped or Asked</p>
+          <p class="text-5xl font-extrabold text-amber-400">28</p>
+          <p class="text-xs text-amber-300 font-semibold">53.8% Engagement Rate</p>
+          <p class="text-[11px] text-slate-400 pt-2">Shopkeepers who reviewed rate card, discussed terms & evaluated listing.</p>
+        </div>
+
+        <div class="card-glass p-6 rounded-2xl border-2 border-emerald-500 bg-emerald-950/20 space-y-1">
+          <p class="text-xs font-bold uppercase text-emerald-400">3. Committed (Paid)</p>
+          <p class="text-5xl font-extrabold text-emerald-400">9</p>
+          <p class="text-xs text-emerald-300 font-semibold">17.3% Conversion Rate</p>
+          <p class="text-[11px] text-slate-300 pt-2 font-bold">Merchants paid ₹99 token advance via UPI. (Pass mark was 8!)</p>
+        </div>
+      </div>
+
+      <!-- Channels -->
+      <div class="grid grid-cols-2 gap-5 pt-1">
+        <div class="card-glass p-5 rounded-2xl border border-indigo-500/40 space-y-2">
+          <p class="text-xs font-bold uppercase text-indigo-400">Channel 1: In-Person Street Walk-Ins (Field Sales)</p>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            • Target: Porwal Road, Lohegaon market, and ADYPU outer gate.<br>
+            • Pitch: Demonstrated live NearlyY student interface on phone; showed how a student sends 1-tap WhatsApp lead.<br>
+            • Metrics: 38 Shops Walked In | 21 Engaged | <strong class="text-white">7 Closed with ₹99 UPI Token.</strong>
+          </p>
+        </div>
+        <div class="card-glass p-5 rounded-2xl border border-emerald-500/40 space-y-2">
+          <p class="text-xs font-bold uppercase text-emerald-400">Channel 2: Direct WhatsApp & Phone Calls</p>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            • Target: Local PG brokers & gym managers sourced from physical posters and college groups.<br>
+            • Pitch: Sent 1-minute video demo of NearlyY listing card + ₹99 early-bird lock-in offer.<br>
+            • Metrics: 14 Cold Calls / WhatsApp Pitches | 7 Engaged | <strong class="text-white">2 Closed with ₹99 UPI.</strong>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 8: STEP 6 - DAILY SALES LOG ==================== -->
+  <section class="slide pt-16">
+    <div class="max-w-6xl w-full mx-auto space-y-4">
+      <div>
+        <p class="text-xs font-bold uppercase text-indigo-400 tracking-wider">Step 6 • 15 to 19 Nov • Part 2</p>
+        <h2 class="text-2xl font-extrabold text-white">Daily Selling Log & Revenue Collected (3 Numbers Every Evening)</h2>
+      </div>
+
+      <div class="grid grid-cols-12 gap-5">
+        <!-- Daily Table -->
+        <div class="col-span-8 overflow-hidden rounded-xl border border-slate-700 bg-slate-900/60 shadow-xl">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-800 text-slate-300 border-b border-slate-700">
+                <th class="py-2.5 px-3">Date</th>
+                <th class="py-2.5 px-3">Saw It (Pitched)</th>
+                <th class="py-2.5 px-3">Stopped / Asked</th>
+                <th class="py-2.5 px-3">Committed (Paid)</th>
+                <th class="py-2.5 px-3">UPI Revenue</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/80 text-slate-300">
+              <tr>
+                <td class="py-2 px-3 font-medium text-white">Sun 15 Nov</td>
+                <td class="py-2 px-3">10</td>
+                <td class="py-2 px-3">5</td>
+                <td class="py-2 px-3 font-bold text-emerald-400">1</td>
+                <td class="py-2 px-3 font-mono">₹99</td>
+              </tr>
+              <tr>
+                <td class="py-2 px-3 font-medium text-white">Mon 16 Nov</td>
+                <td class="py-2 px-3">14</td>
+                <td class="py-2 px-3">8</td>
+                <td class="py-2 px-3 font-bold text-emerald-400">3</td>
+                <td class="py-2 px-3 font-mono">₹297</td>
+              </tr>
+              <tr>
+                <td class="py-2 px-3 font-medium text-white">Tue 17 Nov</td>
+                <td class="py-2 px-3">11</td>
+                <td class="py-2 px-3">6</td>
+                <td class="py-2 px-3 font-bold text-emerald-400">2</td>
+                <td class="py-2 px-3 font-mono">₹198</td>
+              </tr>
+              <tr>
+                <td class="py-2 px-3 font-medium text-white">Wed 18 Nov</td>
+                <td class="py-2 px-3">9</td>
+                <td class="py-2 px-3">5</td>
+                <td class="py-2 px-3 font-bold text-emerald-400">2</td>
+                <td class="py-2 px-3 font-mono">₹198</td>
+              </tr>
+              <tr>
+                <td class="py-2 px-3 font-medium text-white">Thu 19 Nov</td>
+                <td class="py-2 px-3">8</td>
+                <td class="py-2 px-3">4</td>
+                <td class="py-2 px-3 font-bold text-emerald-400">1</td>
+                <td class="py-2 px-3 font-mono">₹99</td>
+              </tr>
+              <tr class="bg-indigo-950/40 border-t-2 border-indigo-500/40 font-bold text-white">
+                <td class="py-2.5 px-3 uppercase text-indigo-300">TOTAL (5 Days)</td>
+                <td class="py-2.5 px-3 text-indigo-200">52</td>
+                <td class="py-2.5 px-3 text-indigo-200">28</td>
+                <td class="py-2.5 px-3 text-emerald-400 font-extrabold text-sm">9 PAID</td>
+                <td class="py-2.5 px-3 text-emerald-300 font-mono text-sm">₹891</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Metric Card -->
+        <div class="col-span-4 card-glass p-5 rounded-2xl border-2 border-emerald-500 bg-emerald-950/20 space-y-3">
+          <p class="text-xs font-bold uppercase text-emerald-400 tracking-wider">Pass Mark Score</p>
+          <p class="text-6xl font-extrabold text-emerald-400">112.5%</p>
+          <div class="text-xs text-slate-200 space-y-1">
+            <p>• <span class="text-slate-400">Target Pass Mark:</span> 8 Paying Merchants</p>
+            <p>• <span class="text-slate-400">Actual Paid:</span> 9 Merchants</p>
+            <p>• <span class="text-slate-400">Formula:</span> 9 ÷ 8 = 112.5%</p>
+            <p>• <span class="text-slate-400">Advance Revenue:</span> ₹891 via UPI</p>
+          </div>
+          <p class="text-[11px] text-emerald-300 font-semibold pt-2 border-t border-emerald-500/30">
+            ✓ Zero friends counted (100% genuine shopkeepers). All UPI receipts & shop photos stored in Google Drive.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 9: STEP 7 - EVIDENCE MATRIX ==================== -->
+  <section class="slide pt-16">
+    <div class="max-w-6xl w-full mx-auto space-y-5">
+      <div>
+        <p class="text-xs font-bold uppercase text-indigo-400 tracking-wider">Step 7 • 19 Nov • Part 1</p>
+        <h2 class="text-3xl font-extrabold text-white">Plotting Our Dot on the Evidence Matrix</h2>
+        <p class="text-sm text-slate-400">Y-Axis: Is the Problem Real? (12/15) • X-Axis: Did People Commit? (112.5%)</p>
+      </div>
+
+      <div class="grid grid-cols-12 gap-6">
+        <!-- 2x2 Matrix UI -->
+        <div class="col-span-7 card-glass p-5 rounded-2xl border border-slate-700">
+          <p class="text-xs font-bold uppercase text-slate-400 mb-3">The Evidence Matrix Grid</p>
+          <div class="grid grid-cols-2 gap-3 h-72">
+            <!-- Top Left: Modify Solution -->
+            <div class="p-4 rounded-xl border border-amber-500/40 bg-amber-950/20 flex flex-col justify-between">
+              <div>
+                <p class="text-xs font-bold text-amber-400 uppercase">Modify The Solution</p>
+                <p class="text-[11px] text-slate-300 mt-1">Problem is real. Offer didn't land.</p>
+              </div>
+              <p class="text-[10px] text-slate-500">High Pain / Low Commit</p>
+            </div>
+
+            <!-- Top Right: CONTINUE (Our Dot) -->
+            <div class="p-4 rounded-xl border-2 border-emerald-400 bg-emerald-950/40 flex flex-col justify-between relative shadow-lg shadow-emerald-500/20">
+              <div class="absolute -top-3 -right-2 px-2 py-0.5 rounded-full bg-emerald-500 text-slate-900 font-extrabold text-[10px] uppercase animate-bounce">
+                ★ Our Dot (112.5%, 12/15)
+              </div>
+              <div>
+                <p class="text-xs font-bold text-emerald-300 uppercase">CONTINUE (OUR CALL)</p>
+                <p class="text-[11px] text-emerald-100 font-semibold mt-1">Real pain + Real commitments.</p>
+              </div>
+              <div class="text-[11px] text-emerald-300 font-mono">
+                • Pain: 12 / 15 (80%)<br>• Commitments: 112.5%
+              </div>
+            </div>
+
+            <!-- Bottom Left: Kill -->
+            <div class="p-4 rounded-xl border border-rose-500/40 bg-rose-950/20 flex flex-col justify-between">
+              <div>
+                <p class="text-xs font-bold text-rose-400 uppercase">KILL</p>
+                <p class="text-[11px] text-slate-300 mt-1">No pain proven, no commitments.</p>
+              </div>
+              <p class="text-[10px] text-slate-500">Low Pain / Low Commit</p>
+            </div>
+
+            <!-- Bottom Right: Modify Customer -->
+            <div class="p-4 rounded-xl border border-slate-700 bg-slate-800/20 flex flex-col justify-between">
+              <div>
+                <p class="text-xs font-bold text-slate-400 uppercase">Modify The Customer</p>
+                <p class="text-[11px] text-slate-300 mt-1">They said yes, but who really hurts?</p>
+              </div>
+              <p class="text-[10px] text-slate-500">Low Pain / High Commit</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coordinates Explanation -->
+        <div class="col-span-5 card-glass p-6 rounded-2xl border border-indigo-500/40 space-y-4">
+          <p class="text-xs font-bold uppercase text-indigo-400 tracking-wider">Quantitative Placement</p>
+          <div class="space-y-1.5 text-xs text-slate-200">
+            <p class="font-bold text-white">1. Y-Axis: Is the Problem Real?</p>
+            <p class="text-slate-300">• <strong class="text-emerald-400">12 out of 15</strong> (80.0%) pain count.</p>
+            <p class="text-slate-400">• Class threshold is 8+ for a real problem. We cleared this by +50%.</p>
+          </div>
+          <div class="space-y-1.5 text-xs text-slate-200">
+            <p class="font-bold text-white">2. X-Axis: Did People Commit?</p>
+            <p class="text-slate-300">• <strong class="text-emerald-400">112.5%</strong> (9 paid commitments ÷ 8 pass mark).</p>
+            <p class="text-slate-400">• Class threshold is 100% to hit target. Target crushed with ₹891 revenue.</p>
+          </div>
+          <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-xs text-emerald-200 font-bold">
+            Conclusion: Solid placement inside the CONTINUE quadrant. Both sides of the two-sided marketplace demonstrated active urgency.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 10: STEP 7 - VERDICT & LEARNINGS ==================== -->
+  <section class="slide pt-16">
+    <div class="max-w-6xl w-full mx-auto space-y-5">
+      <div>
+        <p class="text-xs font-bold uppercase text-indigo-400 tracking-wider">Step 7 • 19 Nov • Part 2</p>
+        <h2 class="text-3xl font-extrabold text-white">The Verdict Call & Strategic Field Learnings</h2>
+        <p class="text-sm text-slate-400">Defense Preparation: "What result would have made you choose differently?"</p>
+      </div>
+
+      <!-- Verdict Sentence Card -->
+      <div class="p-5 rounded-2xl bg-emerald-950/40 border-2 border-emerald-500 space-y-2">
+        <p class="text-xs font-bold uppercase tracking-wider text-emerald-400">The Official Verdict Sentence (Done When Format):</p>
+        <p class="text-base text-white font-bold leading-relaxed">
+          "We choose to <span class="text-emerald-400 underline uppercase">CONTINUE</span> because 12 out of 15 interviewed students and vendors articulated severe daily discovery friction, and 9 out of 52 pitched merchants committed real money (₹99 UPI advance) before launch.<br><br>
+          <span class="text-slate-300 text-sm font-normal">The evidence that would change our mind is if merchant renewal drops below 40% in Month 2 or if listed merchants receive fewer than 5 student WhatsApp inquiries per week."</span>
+        </p>
+      </div>
+
+      <!-- 3 Key Learnings -->
+      <div class="grid grid-cols-3 gap-5 pt-1">
+        <div class="card-glass p-5 rounded-2xl border border-indigo-500/40 space-y-2">
+          <p class="text-xs font-bold uppercase text-indigo-400">1. Mess & PG Urgency</p>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Mess owners experience 30% student churn monthly; PG owners lose ₹10,000/mo on vacant rooms. They converted fastest because lead cost is cheaper than idle capacity.
+          </p>
+        </div>
+
+        <div class="card-glass p-5 rounded-2xl border border-slate-700 space-y-2">
+          <p class="text-xs font-bold uppercase text-slate-300">2. WhatsApp Trumps Dashboards</p>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Shopkeepers refused complicated merchant logins. They loved NearlyY because inquiries land directly inside their personal WhatsApp with zero learning curve.
+          </p>
+        </div>
+
+        <div class="card-glass p-5 rounded-2xl border border-emerald-500/40 space-y-2">
+          <p class="text-xs font-bold uppercase text-emerald-400">3. Zero Brokerage = Organic Growth</p>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Students shared the app across campus hostel groups without any marketing spend purely because they found zero-brokerage flat listings with transparent landlord numbers.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 11: TEAM & WHO DID WHAT ==================== -->
+  <section class="slide pt-16">
+    <div class="max-w-6xl w-full mx-auto space-y-5">
+      <div>
+        <p class="text-xs font-bold uppercase text-indigo-400 tracking-wider">Step 7 • Final Slide</p>
+        <h2 class="text-3xl font-extrabold text-white">Team Accountability & Submission Links</h2>
+        <p class="text-sm text-slate-400">Submission Cutoff: Fri 20 Nov • D-Day Defense with Ashank Bhandari: Sat 21 Nov</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <!-- Team Ownership -->
+        <div class="card-glass p-6 rounded-2xl border border-indigo-500/40 space-y-3">
+          <p class="text-xs font-bold uppercase text-indigo-400 tracking-wider">Team Roles & Contributions</p>
+          <div class="space-y-1">
+            <p class="text-lg font-bold text-white">Sahil Dehadray <span class="text-xs text-indigo-400 font-normal">(Team Lead)</span></p>
+            <p class="text-xs text-slate-400">Ajeenkya DY Patil University (ADYPU), Lohegaon, Pune</p>
+          </div>
+          <div class="text-xs text-slate-300 space-y-1.5 pt-1">
+            <p>• <strong class="text-white">Steps 1 & 2:</strong> Formulated problem statement, identified & circled riskiest assumption.</p>
+            <p>• <strong class="text-white">Step 3:</strong> Conducted 10+ recorded interviews on Porwal Road (1.8+ GB raw video in Drive).</p>
+            <p>• <strong class="text-white">Step 4 & 5:</strong> Filed Bet Card on 15 Nov; built full-stack mobile PWA and Capacitor Android APK.</p>
+            <p>• <strong class="text-white">Step 6 & 7:</strong> Led Porwal Road street sales; closed 5 of 9 paid merchants; defended Continue verdict.</p>
+          </div>
+          <p class="text-[11px] text-slate-400 pt-2 border-t border-slate-800">
+            Field Collaborators assisted in secondary calls, filming reel footage, and logging daily sales numbers.
+          </p>
+        </div>
+
+        <!-- Bonus Hand-Delivery & Links -->
+        <div class="card-glass p-6 rounded-2xl border border-emerald-500/40 space-y-4">
+          <div>
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-bold uppercase text-emerald-400 tracking-wider">★ Bonus Protocol (+10 Marks)</p>
+              <span class="text-[10px] font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded">3 Real Customers</span>
+            </div>
+            <div class="text-xs text-slate-300 space-y-1.5 pt-2">
+              <p>1. <strong class="text-white">Pakpalak Mess:</strong> Escorted ADYPU hosteller to mess; redeemed 10% student discount pass.</p>
+              <p>2. <strong class="text-white">Express Laundry:</strong> Doorstep pickup trial with verified weigh-in and receipt.</p>
+              <p>3. <strong class="text-white">Sunrise PG:</strong> Escorted flat-seeker to zero-brokerage room visit near Air Force Station.</p>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-800 space-y-2">
+            <p class="text-xs font-bold uppercase text-indigo-400 tracking-wider">Submission Deliverables</p>
+            <div class="text-xs space-y-1">
+              <p class="flex items-center gap-1.5">
+                <i data-lucide="file-text" class="w-3.5 h-3.5 text-indigo-400"></i>
+                <span class="text-slate-400">Deck:</span> <strong class="text-white font-mono">NearlyY_Workshop3_Presentation.pptx</strong>
+              </p>
+              <p class="flex items-center gap-1.5">
+                <i data-lucide="folder-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span class="text-slate-400">Proof Folder:</span> 
+                <a href="https://drive.google.com/drive/u/3/folders/1OJAp8ozetiOnlbrvikD1-AOkdYcMPbma" target="_blank" class="text-emerald-400 underline font-mono text-[11px]">Interviews-15-People (Drive)</a>
+              </p>
+              <p class="flex items-center gap-1.5">
+                <i data-lucide="clapperboard" class="w-3.5 h-3.5 text-indigo-400"></i>
+                <span class="text-slate-400">Reel (60-90s):</span> <strong class="text-white">Posted with #UpstartProveIt @upstart_labs</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="no-print fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-2.5 bg-slate-900/80 backdrop-blur-md border-t border-slate-800 text-[11px] text-slate-500">
+    <div>Navigate: <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">←</kbd> <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">→</kbd> or <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">Space</kbd> • Fullscreen: <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">F</kbd> • Print / PDF: <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">Cmd + P</kbd></div>
+    <div>NearlyY • All 15 Video Proof Files Linked</div>
+  </footer>
+
+  <script>
+    lucide.createIcons();
+    const slides = document.querySelectorAll('.slide');
+    let currentSlide = 0;
+    const totalSlides = slides.length;
+    document.getElementById('slide-total').textContent = totalSlides;
+
+    function showSlide(index) {
+      if (index < 0) index = 0;
+      if (index >= totalSlides) index = totalSlides - 1;
+      slides[currentSlide].classList.remove('active');
+      currentSlide = index;
+      slides[currentSlide].classList.add('active');
+      document.getElementById('slide-num').textContent = currentSlide + 1;
+    }
+
+    function prevSlide() { showSlide(currentSlide - 1); }
+    function nextSlide() { showSlide(currentSlide + 1); }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullScreen();
+      } else if (e.key === 'Home') {
+        showSlide(0);
+      } else if (e.key === 'End') {
+        showSlide(totalSlides - 1);
+      }
+    });
+  </script>
+</body>
+</html>
