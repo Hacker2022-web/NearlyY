@@ -9,7 +9,7 @@ import {
   Mail, Camera, GraduationCap, Briefcase, Building, X, CheckSquare, Square,
   MessageSquare, Radio, Send, BellRing, ChevronLeft, Image as ImageIcon,
   Instagram, PhoneCall, Music, Ticket, ExternalLink, Plus, Minus, Menu, MoreHorizontal,
-  Download, RefreshCw, AlertCircle
+  Download, RefreshCw, AlertCircle, Maximize2
 } from 'lucide-react';
 import { 
   LOCALITY, SERVICES_MENU, CATEGORY_DATA, USER_PROFILE 
@@ -53,10 +53,38 @@ const HERO_SLIDES = [
 
 const getItemImages = (item) => {
   if (!item) return [];
-  if (Array.isArray(item.images) && item.images.length > 0) return item.images.filter(Boolean);
-  if (Array.isArray(item.gallery) && item.gallery.length > 0) return [item.coverImage, ...item.gallery].filter(Boolean);
-  if (item.coverImage) return [item.coverImage];
-  if (item.image) return [item.image];
+  const list = [];
+  
+  // 1. Photos array (primary for multiple photos in mockData/Firestore)
+  if (Array.isArray(item.photos)) {
+    item.photos.forEach(p => {
+      if (p && typeof p === 'string' && !list.includes(p)) list.push(p);
+    });
+  }
+
+  // 2. Images array (user uploads)
+  if (Array.isArray(item.images)) {
+    item.images.forEach(p => {
+      if (p && typeof p === 'string' && !list.includes(p)) list.push(p);
+    });
+  }
+
+  // 3. Gallery array
+  if (Array.isArray(item.gallery)) {
+    item.gallery.forEach(p => {
+      if (p && typeof p === 'string' && !list.includes(p)) list.push(p);
+    });
+  }
+
+  // 4. Cover image
+  if (item.coverImage && typeof item.coverImage === 'string' && !list.includes(item.coverImage)) {
+    list.unshift(item.coverImage);
+  }
+  if (item.image && typeof item.image === 'string' && !list.includes(item.image)) {
+    list.push(item.image);
+  }
+
+  if (list.length > 0) return list;
   return ['https://images.unsplash.com/photo-1613292443284-8d10ef9383fe?w=800&auto=format&fit=crop&q=80'];
 };
 
@@ -310,6 +338,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState(CATEGORY_DATA.mess[0]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [showImageLightbox, setShowImageLightbox] = useState(false);
   const [showChatComingSoonModal, setShowChatComingSoonModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -326,6 +355,8 @@ export default function App() {
 
   const toastTimerRef = useRef(null);
   const scrollAreaRef = useRef(null);
+  const touchCarouselRef = useRef(null);
+  const touchHeroRef = useRef(null);
 
   // App Update (OTA + APK) State
   const [appConfig, setAppConfig] = useState(null);
@@ -426,6 +457,15 @@ export default function App() {
       }
     });
   }, [heroSlideIndex]);
+
+  // Auto-rotate home hero slides
+  useEffect(() => {
+    if (currentScreen !== 'home') return;
+    const interval = setInterval(() => {
+      setHeroSlideIndex(prev => (prev + 1) % HERO_SLIDES.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [currentScreen]);
 
   // Onboarding step transition
   useEffect(() => {
@@ -533,6 +573,10 @@ export default function App() {
 
   const navigateBack = useCallback(() => {
     // 1. Close open modals first
+    if (showImageLightbox) {
+      setShowImageLightbox(false);
+      return true;
+    }
     if (showUpdateModal && !appConfig?.forceUpdate) {
       setShowUpdateModal(false);
       return true;
@@ -577,8 +621,11 @@ export default function App() {
 
     return false;
   }, [
+    showImageLightbox,
     showChatComingSoonModal,
     showEditProfileModal,
+    showUpdateModal,
+    appConfig?.forceUpdate,
     isOnboarded,
     onboardingStep,
     screenHistory,
@@ -640,14 +687,15 @@ export default function App() {
       const deltaY = touch.clientY - touchStartRef.current.y;
 
       const canGoBack = Boolean(
+        showImageLightbox ||
         showChatComingSoonModal ||
         showEditProfileModal ||
         (!isOnboarded && onboardingStep > 1) ||
         (isOnboarded && currentScreen !== 'home')
       );
 
-      // Show indicator when swiping right from left area
-      if (canGoBack && deltaX > 15 && deltaX > Math.abs(deltaY) * 1.3 && touchStartRef.current.x < 120) {
+      // Show indicator when swiping right from left edge area
+      if (canGoBack && deltaX > 15 && deltaX > Math.abs(deltaY) * 1.3 && touchStartRef.current.x <= 50) {
         const progress = Math.min(Math.max((deltaX - 15) / 90, 0), 1);
         setSwipeProgress(progress);
       }
@@ -661,14 +709,14 @@ export default function App() {
       const deltaY = touch.clientY - touchStartRef.current.y;
       const duration = Date.now() - touchStartRef.current.time;
 
-      const isHorizontalSwipe = deltaX > 60 && Math.abs(deltaY) < 90 && deltaX > Math.abs(deltaY) * 1.2;
-      const isFastFlick = deltaX > 40 && duration < 240 && Math.abs(deltaY) < 40;
-      const isValidOrigin = (touchStartRef.current.x <= Math.min(window.innerWidth * 0.45, 160)) || 
-                            (currentScreen === 'detail' || currentScreen === 'confirmed');
+      const isHorizontalSwipe = deltaX > 55 && Math.abs(deltaY) < 90 && deltaX > Math.abs(deltaY) * 1.2;
+      const isFastFlick = deltaX > 35 && duration < 240 && Math.abs(deltaY) < 40;
+      // Edge swipe: must start near left bezel (<= 50px) so in-screen carousels & sliders can swipe freely
+      const isValidOrigin = touchStartRef.current.x <= 50;
 
       if ((isHorizontalSwipe || isFastFlick) && isValidOrigin) {
         const target = document.elementFromPoint(touchStartRef.current.x, touchStartRef.current.y);
-        if (target && target.closest('input, textarea, select')) return;
+        if (target && target.closest('input, textarea, select, .image-carousel, .no-swipe-back')) return;
 
         const handled = navigateBack();
         if (handled && typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -687,7 +735,7 @@ export default function App() {
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [navigateBack, showChatComingSoonModal, showEditProfileModal, isOnboarded, onboardingStep, currentScreen]);
+  }, [navigateBack, showImageLightbox, showChatComingSoonModal, showEditProfileModal, isOnboarded, onboardingStep, currentScreen]);
 
   const openCategory = (catId) => {
     const normalized = getCategoryId(catId);
@@ -1048,23 +1096,113 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Hero Banner */}
-                  <div className="home-section relative rounded-2xl overflow-hidden bg-slate-900 p-5 text-white shadow-lg">
-                    <div className="relative z-10 max-w-md">
-                      <span className="inline-block px-3 py-1 rounded-full bg-white/10 text-xs font-medium mb-3 backdrop-blur">For You</span>
-                      <h3 className="text-xl font-bold leading-tight mb-2">Student Life, Sorted</h3>
-                      <p className="text-sm text-white/70 mb-4">Mess, laundry, gym, flats & events — all in one app.</p>
+                  {/* Hero Interactive Carousel */}
+                  <div 
+                    className="home-section image-carousel relative rounded-3xl overflow-hidden bg-slate-950 p-5 text-white shadow-xl min-h-[12.5rem] flex flex-col justify-between select-none"
+                    onTouchStart={(e) => {
+                      const t = e.touches[0];
+                      touchHeroRef.current = { x: t.clientX, y: t.clientY };
+                    }}
+                    onTouchEnd={(e) => {
+                      if (!touchHeroRef.current) return;
+                      const t = e.changedTouches[0];
+                      const dx = t.clientX - touchHeroRef.current.x;
+                      const dy = t.clientY - touchHeroRef.current.y;
+                      if (Math.abs(dx) > 35 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+                        if (dx < 0) {
+                          setHeroSlideIndex(prev => (prev + 1) % HERO_SLIDES.length);
+                        } else {
+                          setHeroSlideIndex(prev => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+                        }
+                      }
+                      touchHeroRef.current = null;
+                    }}
+                  >
+                    {/* Background Slide with Overlay */}
+                    <div className="absolute inset-0 -z-10 overflow-hidden">
+                      <img 
+                        src={HERO_SLIDES[heroSlideIndex]?.image} 
+                        alt="" 
+                        className="w-full h-full object-cover transition-all duration-700 scale-105" 
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-transparent" />
+                    </div>
+
+                    {/* Content */}
+                    <div className="relative z-10 max-w-xs space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full bg-brand-500/30 text-brand-200 border border-brand-400/30 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md">
+                          {HERO_SLIDES[heroSlideIndex]?.badge}
+                        </span>
+                        <span className="text-[11px] text-white/60 flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {HERO_SLIDES[heroSlideIndex]?.location}
+                        </span>
+                      </div>
+                      <h3 className="text-xl font-extrabold leading-tight text-white drop-shadow-sm">
+                        {HERO_SLIDES[heroSlideIndex]?.title}
+                      </h3>
+                      <p className="text-xs text-white/80 line-clamp-2">
+                        {HERO_SLIDES[heroSlideIndex]?.tagline}
+                      </p>
+                    </div>
+
+                    {/* Footer Controls & CTA */}
+                    <div className="relative z-10 pt-4 flex items-center justify-between gap-3">
                       <button 
-                        onClick={() => openCategory('mess')}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-900 font-semibold text-sm shadow-md hover:bg-slate-100 active:bg-slate-200 transition-colors"
+                        onClick={() => {
+                          const catMap = ['flats', 'mess', 'gym'];
+                          openCategory(catMap[heroSlideIndex] || 'mess');
+                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-slate-950 font-bold text-xs shadow-md hover:bg-slate-100 active:scale-95 transition-all"
                       >
-                        Explore Services
-                        <ArrowRight className="w-4 h-4" />
+                        Explore Now
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </button>
+
+                      {/* Dot Indicators */}
+                      <div className="flex items-center gap-1.5">
+                        {HERO_SLIDES.map((_, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setHeroSlideIndex(idx)}
+                            className="p-1 -m-1 focus:outline-none"
+                            aria-label={`Go to slide ${idx + 1}`}
+                          >
+                            <div 
+                              className={`h-1.5 rounded-full transition-all ${
+                                idx === heroSlideIndex ? 'w-5 bg-white shadow-sm' : 'w-1.5 bg-white/40'
+                              }`} 
+                            />
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="absolute inset-0 -z-10 opacity-5">
-                      <img src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&auto=format&fit=crop&q=60" alt="" className="w-full h-full object-cover" />
-                    </div>
+
+                    {/* Previous / Next Arrow buttons on Hero Banner */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setHeroSlideIndex(prev => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+                      }}
+                      className="absolute right-12 top-4 w-7 h-7 rounded-full bg-slate-950/40 hover:bg-slate-950/70 backdrop-blur-md border border-white/15 text-white flex items-center justify-center transition-all z-20"
+                      aria-label="Previous slide"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setHeroSlideIndex(prev => (prev + 1) % HERO_SLIDES.length);
+                      }}
+                      className="absolute right-3 top-4 w-7 h-7 rounded-full bg-slate-950/40 hover:bg-slate-950/70 backdrop-blur-md border border-white/15 text-white flex items-center justify-center transition-all z-20"
+                      aria-label="Next slide"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
 
                   {/* Quick Services Grid */}
@@ -1219,31 +1357,97 @@ export default function App() {
               {/* SCREEN 3: DETAIL VIEW */}
               {currentScreen === 'detail' && selectedItem && (() => {
                 const itemImages = getItemImages(selectedItem);
-                const activeImg = itemImages[activeImageIndex] || selectedItem.coverImage;
+                const safeImageIndex = itemImages.length > 0 
+                  ? ((activeImageIndex % itemImages.length) + itemImages.length) % itemImages.length 
+                  : 0;
+                const activeImg = itemImages[safeImageIndex] || selectedItem.coverImage;
+
+                const handlePrevImage = (e) => {
+                  if (e) e.stopPropagation();
+                  if (itemImages.length <= 1) return;
+                  setActiveImageIndex(prev => (prev - 1 + itemImages.length) % itemImages.length);
+                };
+
+                const handleNextImage = (e) => {
+                  if (e) e.stopPropagation();
+                  if (itemImages.length <= 1) return;
+                  setActiveImageIndex(prev => (prev + 1) % itemImages.length);
+                };
 
                 return (
-                  <div className="screen-content space-y-4 detail-view-container">
-                    {/* Hero Carousel */}
-                    <div className="relative h-[clamp(12rem,34vh,17rem)] w-full bg-slate-900 overflow-hidden">
+                  <div className="screen-content space-y-4 detail-view-container pb-8">
+                    {/* Hero Carousel with Touch Swipe, Tap Regions, and Nav Controls */}
+                    <div 
+                      className="image-carousel relative h-[clamp(14rem,38vh,20rem)] w-full bg-slate-950 overflow-hidden select-none"
+                      style={{ touchAction: 'pan-y' }}
+                      onTouchStart={(e) => {
+                        const t = e.touches[0];
+                        touchCarouselRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+                      }}
+                      onTouchEnd={(e) => {
+                        if (!touchCarouselRef.current || itemImages.length <= 1) return;
+                        const t = e.changedTouches[0];
+                        const dx = t.clientX - touchCarouselRef.current.x;
+                        const dy = t.clientY - touchCarouselRef.current.y;
+                        const dt = Date.now() - touchCarouselRef.current.time;
+                        if ((Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy) * 1.05) || (Math.abs(dx) > 20 && dt < 240)) {
+                          if (dx < 0) {
+                            handleNextImage();
+                          } else {
+                            handlePrevImage();
+                          }
+                        }
+                        touchCarouselRef.current = null;
+                      }}
+                    >
                       <img 
                         src={activeImg} 
                         alt={selectedItem.name} 
-                        className="detail-hero-img w-full h-full object-cover" 
+                        className="detail-hero-img w-full h-full object-cover transition-opacity duration-300" 
                         loading="eager"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80';
+                        }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent pointer-events-none" />
+
+                      {/* Quick tap regions on photo: Tap left side for previous, tap right side for next, tap center for lightbox */}
+                      {itemImages.length > 1 && (
+                        <>
+                          <button 
+                            type="button"
+                            onClick={handlePrevImage}
+                            className="absolute left-0 top-16 bottom-12 w-1/4 z-10 cursor-pointer focus:outline-none"
+                            aria-label="Previous photo"
+                          />
+                          <button 
+                            type="button"
+                            onClick={handleNextImage}
+                            className="absolute right-0 top-16 bottom-12 w-1/4 z-10 cursor-pointer focus:outline-none"
+                            aria-label="Next photo"
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => setShowImageLightbox(true)}
+                            className="absolute left-1/4 right-1/4 top-16 bottom-12 z-10 cursor-pointer focus:outline-none"
+                            aria-label="View fullscreen photo"
+                          />
+                        </>
+                      )}
                       
+                      {/* Top Header Buttons: Back, Bookmark, WhatsApp */}
                       <IconButton 
                         onClick={navigateBack} 
                         variant="default" 
                         size="md"
                         aria-label="Back"
-                        style={{ position: 'absolute', top: 'max(var(--app-safe-top), 0.75rem)', left: '1rem', zIndex: 10 }}
+                        style={{ position: 'absolute', top: 'max(var(--app-safe-top), 0.75rem)', left: '1rem', zIndex: 25 }}
                       >
                         <ArrowLeft className="w-5 h-5" />
                       </IconButton>
 
-                      <div style={{ position: 'absolute', top: 'max(var(--app-safe-top), 0.75rem)', right: '1rem', zIndex: 10, display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ position: 'absolute', top: 'max(var(--app-safe-top), 0.75rem)', right: '1rem', zIndex: 25, display: 'flex', gap: '0.5rem' }}>
                         <IconButton 
                           onClick={() => setIsBookmarked(!isBookmarked)} 
                           variant="default" 
@@ -1262,23 +1466,114 @@ export default function App() {
                         </IconButton>
                       </div>
 
+                      {/* Left & Right Chevron Arrows (When Multiple Images) */}
                       {itemImages.length > 1 && (
-                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                        <>
+                          <button
+                            type="button"
+                            onClick={handlePrevImage}
+                            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-950/60 hover:bg-slate-950/80 active:scale-90 backdrop-blur-md text-white flex items-center justify-center transition-all z-20 border border-white/20 shadow-md"
+                            aria-label="Previous photo"
+                          >
+                            <ChevronLeft className="w-5 h-5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleNextImage}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-950/60 hover:bg-slate-950/80 active:scale-90 backdrop-blur-md text-white flex items-center justify-center transition-all z-20 border border-white/20 shadow-md"
+                            aria-label="Next photo"
+                          >
+                            <ChevronRight className="w-5 h-5" />
+                          </button>
+                        </>
+                      )}
+
+                      {/* Photo Counter Pill Badge (Tap opens Fullscreen Lightbox) */}
+                      {itemImages.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowImageLightbox(true)}
+                          className="absolute bottom-3 right-3 bg-slate-950/70 hover:bg-slate-900 active:scale-95 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm border border-white/10 z-20 transition-all cursor-pointer"
+                          aria-label="View photo gallery in fullscreen"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5 text-brand-300" />
+                          <span>{safeImageIndex + 1} / {itemImages.length}</span>
+                          <Maximize2 className="w-2.5 h-2.5 text-slate-300 ml-0.5" />
+                        </button>
+                      )}
+
+                      {/* Dot Indicators */}
+                      {itemImages.length > 1 && (
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20">
                           {itemImages.map((_, idx) => (
-                            <div 
+                            <button
                               key={idx}
-                              className={`w-1.5 h-1.5 rounded-full transition-all ${
-                                idx === activeImageIndex ? 'bg-white w-5' : 'bg-white/40'
-                              }`}
-                              onClick={() => setActiveImageIndex(idx)}
-                            />
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveImageIndex(idx);
+                              }}
+                              className="p-1 -m-1 focus:outline-none"
+                              aria-label={`Go to photo ${idx + 1}`}
+                            >
+                              <div 
+                                className={`h-1.5 rounded-full transition-all ${
+                                  idx === safeImageIndex ? 'bg-white w-5 shadow-sm' : 'bg-white/45 w-1.5 hover:bg-white/80'
+                                }`}
+                              />
+                            </button>
                           ))}
                         </div>
                       )}
                     </div>
 
-                    {/* Content */}
+                    {/* Content Body */}
                     <div className="px-4 pb-6 space-y-4">
+                      {/* Photo Thumbnails Strip (Tap to Switch Image or Fullscreen) */}
+                      {itemImages.length > 1 && (
+                        <div className="photo-gallery space-y-1.5 pt-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                              <ImageIcon className="w-3.5 h-3.5 text-brand-600" />
+                              Photos ({itemImages.length})
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setShowImageLightbox(true)}
+                              className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1"
+                            >
+                              View all ({itemImages.length})
+                              <ChevronRight className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-1">
+                            {itemImages.map((imgUrl, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setActiveImageIndex(idx)}
+                                className={`relative w-20 h-20 rounded-2xl overflow-hidden shrink-0 transition-all ${
+                                  idx === safeImageIndex 
+                                    ? 'ring-2 ring-brand-600 scale-102 shadow-md' 
+                                    : 'opacity-70 hover:opacity-100 border border-slate-200'
+                                }`}
+                              >
+                                <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                                {idx === safeImageIndex && (
+                                  <div className="absolute inset-0 bg-brand-600/20 border-2 border-brand-600 rounded-2xl flex items-center justify-center">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-white shadow-md ring-2 ring-brand-600" />
+                                  </div>
+                                )}
+                                <span className="absolute bottom-1 right-1 bg-slate-950/70 text-white text-[9px] font-bold px-1 rounded">
+                                  {idx + 1}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Title & Price Header */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
@@ -1287,7 +1582,7 @@ export default function App() {
                           </div>
                           <h1 className="text-xl font-bold text-slate-900 tracking-tight">{selectedItem.name}</h1>
                           <p className="text-sm text-slate-500 mt-1 flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5" />
+                            <MapPin className="w-3.5 h-3.5 text-slate-400" />
                             {selectedItem.venue || selectedItem.locality || LOCALITY}
                           </p>
                         </div>
@@ -1297,13 +1592,34 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="rounded-xl bg-slate-50 p-4 space-y-3">
+                      {/* Primary Actions: WhatsApp & Book */}
+                      <div className="flex gap-3 pt-1">
+                        <button
+                          onClick={() => handleWhatsAppChat(selectedItem.name, activeCategory, selectedItem.phone)}
+                          className="flex-1 py-3.5 rounded-xl bg-green-600 text-white font-semibold text-sm shadow-md hover:bg-green-700 active:bg-green-800 transition-colors flex items-center justify-center gap-2"
+                          disabled={isBooking}
+                        >
+                          <PhoneCall className="w-4 h-4" />
+                          WhatsApp
+                        </button>
+                        <button
+                          onClick={() => triggerBooking(selectedItem.name, activeCategory, selectedItem.phone, selectedItem.priceDisplay)}
+                          className="flex-1 py-3.5 rounded-xl bg-brand-600 text-white font-semibold text-sm shadow-brand hover:bg-brand-700 active:bg-brand-800 transition-colors flex items-center justify-center gap-2"
+                          disabled={isBooking}
+                        >
+                          <Check className="w-4 h-4" />
+                          Book Now
+                        </button>
+                      </div>
+
+                      {/* About Description */}
+                      <div className="rounded-2xl bg-slate-50 p-4 space-y-2 border border-slate-100">
                         <h3 className="text-sm font-semibold text-slate-900">About</h3>
                         <p className="text-sm text-slate-600 leading-relaxed">
-                          {selectedItem.description || 'Quality service for students and residents in Lohegaon, Pune. Verified and trusted by the NearlyY community.'}
+                          {selectedItem.description || 'Quality verified service for students and residents in Lohegaon, Pune. Trusted by the NearlyY community.'}
                         </p>
                         {selectedItem.highlights && selectedItem.highlights.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-2 pt-1">
                             {selectedItem.highlights.map((h, i) => (
                               <Badge key={i} variant="outline" className="text-xs">{h}</Badge>
                             ))}
@@ -1311,10 +1627,144 @@ export default function App() {
                         )}
                       </div>
 
-                      {/* Event Details (for Parties & Gigs) */}
+                      {/* CATEGORY SPECIFIC: Flats & PG Details */}
+                      {selectedItem.category === 'flats' && (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                            <div className="p-3 rounded-2xl bg-white border border-slate-100 shadow-xs">
+                              <span className="text-[10px] text-slate-400 block font-semibold">Sharing</span>
+                              <span className="font-bold text-slate-900 text-xs truncate block">{selectedItem.sharing || 'Single / Double'}</span>
+                            </div>
+                            <div className="p-3 rounded-2xl bg-white border border-slate-100 shadow-xs">
+                              <span className="text-[10px] text-slate-400 block font-semibold">Deposit</span>
+                              <span className="font-bold text-slate-900 text-xs block">₹{selectedItem.deposit || 5000}</span>
+                            </div>
+                            <div className="p-3 rounded-2xl bg-white border border-slate-100 shadow-xs">
+                              <span className="text-[10px] text-slate-400 block font-semibold">Brokerage</span>
+                              <span className="font-bold text-emerald-600 text-xs block">{selectedItem.brokerage || 'Zero Brokerage'}</span>
+                            </div>
+                          </div>
+
+                          {selectedItem.rules && selectedItem.rules.length > 0 && (
+                            <div className="rounded-2xl bg-slate-50 p-4 space-y-2 border border-slate-100">
+                              <h3 className="text-xs font-bold uppercase text-slate-600 tracking-wider">PG Rules & Timings</h3>
+                              <ul className="space-y-1.5 text-xs text-slate-600">
+                                {selectedItem.rules.map((rule, idx) => (
+                                  <li key={idx} className="flex items-start gap-2">
+                                    <span className="text-brand-600 font-bold">•</span>
+                                    <span>{rule}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* CATEGORY SPECIFIC: Gym & Fitness Plans & Facilities */}
+                      {selectedItem.category === 'gym' && (
+                        <div className="space-y-3">
+                          {selectedItem.plans && selectedItem.plans.length > 0 && (
+                            <div className="rounded-2xl bg-white border border-slate-100 p-4 space-y-2.5 shadow-xs">
+                              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                                <Dumbbell className="w-4 h-4 text-brand-600" />
+                                <span>Membership Plans</span>
+                              </h3>
+                              <div className="space-y-2">
+                                {selectedItem.plans.map((plan, idx) => (
+                                  <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                    <div>
+                                      <p className="font-bold text-slate-900 text-xs">{plan.title}</p>
+                                      <p className="text-[11px] text-slate-500">{plan.sub || 'Per Person'}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="font-extrabold text-brand-600 text-sm">₹{plan.price}</span>
+                                      {plan.save && <span className="block text-[10px] text-emerald-600 font-bold uppercase">{plan.save}</span>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {selectedItem.facilities && selectedItem.facilities.length > 0 && (
+                            <div className="rounded-2xl bg-white border border-slate-100 p-4 space-y-2.5 shadow-xs">
+                              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                                <Activity className="w-4 h-4 text-brand-600" />
+                                <span>Gym Facilities</span>
+                              </h3>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                {selectedItem.facilities.map((fac, idx) => {
+                                  const name = typeof fac === 'string' ? fac : (fac.name || 'Facility');
+                                  return (
+                                    <div key={idx} className="flex items-center gap-2 p-2 rounded-xl bg-slate-50">
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                      <span className="font-medium text-slate-700 truncate">{name}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {selectedItem.timings && (
+                            <div className="rounded-2xl bg-amber-50/70 border border-amber-200/60 p-3.5 text-xs space-y-1.5">
+                              <p className="font-bold text-amber-900 flex items-center gap-1.5 text-xs">
+                                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                                <span>Gym Operating Timings</span>
+                              </p>
+                              {selectedItem.timings.general && <p className="text-slate-700"><span className="font-semibold">General:</span> {selectedItem.timings.general}</p>}
+                              {selectedItem.timings.ladiesOnly && <p className="text-slate-700"><span className="font-semibold">Ladies Only:</span> {selectedItem.timings.ladiesOnly}</p>}
+                              {selectedItem.timings.sunday && <p className="text-slate-700"><span className="font-semibold">Sunday:</span> {selectedItem.timings.sunday}</p>}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* CATEGORY SPECIFIC: Mess & Tiffin Menus */}
+                      {selectedItem.category === 'mess' && (
+                        <div className="space-y-3">
+                          {(selectedItem.lunchMenu || selectedItem.dinnerMenu || selectedItem.todayMenu) && (
+                            <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-orange-100 p-4 space-y-2.5 shadow-xs">
+                              <h3 className="text-sm font-bold text-orange-950 flex items-center gap-1.5">
+                                <UtensilsCrossed className="w-4 h-4 text-orange-600" />
+                                <span>Today's Fresh Menu</span>
+                              </h3>
+                              <div className="space-y-2 text-xs">
+                                {(selectedItem.lunchMenu || selectedItem.todayMenu?.lunch) && (
+                                  <div className="bg-white/80 p-2.5 rounded-xl border border-orange-200/50">
+                                    <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider block">☀️ Lunch</span>
+                                    <span className="text-slate-800 font-medium">{selectedItem.lunchMenu || selectedItem.todayMenu?.lunch}</span>
+                                  </div>
+                                )}
+                                {(selectedItem.dinnerMenu || selectedItem.todayMenu?.dinner) && (
+                                  <div className="bg-white/80 p-2.5 rounded-xl border border-orange-200/50">
+                                    <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider block">🌙 Dinner</span>
+                                    <span className="text-slate-800 font-medium">{selectedItem.dinnerMenu || selectedItem.todayMenu?.dinner}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="p-3 rounded-2xl bg-white border border-slate-100 text-center shadow-xs">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase block">Single Thali</span>
+                              <span className="text-base font-extrabold text-brand-600">₹{selectedItem.singleThaliPrice || 90}</span>
+                              <span className="text-[10px] text-slate-500 block">Pay as you eat</span>
+                            </div>
+                            <div className="p-3 rounded-2xl bg-white border border-slate-100 text-center shadow-xs">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase block">Monthly Pass</span>
+                              <span className="text-base font-extrabold text-brand-600">{selectedItem.priceDisplay || `₹${selectedItem.monthlyPrice || 2000}/mo`}</span>
+                              <span className="text-[10px] text-slate-500 block">2 meals / day</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* CATEGORY SPECIFIC: Parties & Events */}
                       {selectedItem.category === 'parties' && (
                         <div className="space-y-3">
-                          {/* Date & Genre Card */}
                           <div className="rounded-xl bg-gradient-to-br from-pink-50 to-purple-50 border border-pink-100 p-4 space-y-2">
                             {selectedItem.dateTime && (
                               <div className="flex items-center gap-2 text-pink-700 font-bold text-sm">
@@ -1335,7 +1785,6 @@ export default function App() {
                             )}
                           </div>
 
-                          {/* Passes Pricing Tiers */}
                           {selectedItem.pricing && selectedItem.pricing.length > 0 && (
                             <div className="rounded-xl bg-white border border-slate-100 p-4 space-y-2.5">
                               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
@@ -1359,7 +1808,6 @@ export default function App() {
                             </div>
                           )}
 
-                          {/* Event Rules */}
                           {selectedItem.rules && selectedItem.rules.length > 0 && (
                             <div className="rounded-xl bg-slate-50 p-4 space-y-2">
                               <h3 className="text-xs font-bold uppercase text-slate-500 tracking-wider">Event Guidelines</h3>
@@ -1374,7 +1822,6 @@ export default function App() {
                             </div>
                           )}
 
-                          {/* Instagram Link */}
                           {selectedItem.instagram && (
                             <a
                               href={selectedItem.instagram}
@@ -1389,47 +1836,30 @@ export default function App() {
                         </div>
                       )}
 
-                      {/* Actions */}
-                      <div className="flex gap-3 pt-2">
-                        <button
-                          onClick={() => handleWhatsAppChat(selectedItem.name, activeCategory, selectedItem.phone)}
-                          className="flex-1 py-3.5 rounded-xl bg-green-600 text-white font-semibold text-sm shadow-md hover:bg-green-700 active:bg-green-800 transition-colors flex items-center justify-center gap-2"
-                          disabled={isBooking}
-                        >
-                          <PhoneCall className="w-4 h-4" />
-                          WhatsApp
-                        </button>
-                        <button
-                          onClick={() => triggerBooking(selectedItem.name, activeCategory, selectedItem.phone, selectedItem.priceDisplay)}
-                          className="flex-1 py-3.5 rounded-xl bg-brand-600 text-white font-semibold text-sm shadow-brand hover:bg-brand-700 active:bg-brand-800 transition-colors flex items-center justify-center gap-2"
-                          disabled={isBooking}
-                        >
-                          <Check className="w-4 h-4" />
-                          Book Now
-                        </button>
-                      </div>
-
-                      {/* Amenities */}
+                      {/* Amenities & Inclusions (Safe Object/String Handling) */}
                       {selectedItem.amenities && selectedItem.amenities.length > 0 && (
                         <div className="space-y-3 pt-2">
-                          <h3 className="text-sm font-semibold text-slate-900">Amenities</h3>
-                          <div className="grid grid-cols-3 gap-2">
-                            {selectedItem.amenities.map((amenity, i) => (
-                              <div key={i} className="flex items-center gap-2 p-3 rounded-xl bg-white border border-slate-100">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                                <span className="text-sm text-slate-700">{amenity}</span>
-                              </div>
-                            ))}
+                          <h3 className="text-sm font-semibold text-slate-900">Amenities & Inclusions</h3>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {selectedItem.amenities.map((amenity, i) => {
+                              const label = typeof amenity === 'string' ? amenity : (amenity.name || 'Amenity');
+                              return (
+                                <div key={i} className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-slate-100 shadow-xs">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                  <span className="text-xs font-medium text-slate-700 truncate">{label}</span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
 
-                      {/* Map Placeholder */}
-                      <div className="rounded-xl bg-slate-50 aspect-video flex items-center justify-center">
-                        <div className="text-center text-slate-500 px-4">
-                          <MapPin className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                          <p className="text-sm">Map view coming soon</p>
-                        </div>
+                      {/* Map Location Card */}
+                      <div className="rounded-2xl bg-slate-50 p-4 border border-slate-100 space-y-2 text-center">
+                        <MapPin className="w-7 h-7 mx-auto text-brand-600 mb-1" />
+                        <h4 className="text-xs font-bold text-slate-900">Location & Area</h4>
+                        <p className="text-xs text-slate-500">{selectedItem.venue || selectedItem.locality || 'Lohegaon, Pune'}</p>
+                        <p className="text-[11px] text-slate-400">{selectedItem.distance || 'Near DY Patil / Airforce Campus'}</p>
                       </div>
                     </div>
                   </div>
@@ -1831,6 +2261,140 @@ export default function App() {
             </p>
           </div>
         </Modal>
+
+        {/* FULLSCREEN PHOTO LIGHTBOX MODAL */}
+        {showImageLightbox && selectedItem && (() => {
+          const itemImages = getItemImages(selectedItem);
+          const safeImageIndex = itemImages.length > 0 
+            ? ((activeImageIndex % itemImages.length) + itemImages.length) % itemImages.length 
+            : 0;
+          const currentPhoto = itemImages[safeImageIndex] || selectedItem.coverImage;
+
+          const handleLightboxPrev = (e) => {
+            if (e) e.stopPropagation();
+            if (itemImages.length <= 1) return;
+            setActiveImageIndex(prev => (prev - 1 + itemImages.length) % itemImages.length);
+          };
+
+          const handleLightboxNext = (e) => {
+            if (e) e.stopPropagation();
+            if (itemImages.length <= 1) return;
+            setActiveImageIndex(prev => (prev + 1) % itemImages.length);
+          };
+
+          return (
+            <div 
+              className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-4 select-none"
+              style={{ touchAction: 'pan-y' }}
+              onTouchStart={(e) => {
+                const t = e.touches[0];
+                touchCarouselRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+              }}
+              onTouchEnd={(e) => {
+                if (!touchCarouselRef.current || itemImages.length <= 1) return;
+                const t = e.changedTouches[0];
+                const dx = t.clientX - touchCarouselRef.current.x;
+                const dy = t.clientY - touchCarouselRef.current.y;
+                const dt = Date.now() - touchCarouselRef.current.time;
+                if ((Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy) * 1.05) || (Math.abs(dx) > 20 && dt < 240)) {
+                  if (dx < 0) {
+                    handleLightboxNext();
+                  } else {
+                    handleLightboxPrev();
+                  }
+                }
+                touchCarouselRef.current = null;
+              }}
+            >
+              {/* Lightbox Header */}
+              <div className="flex items-center justify-between text-white safe-top pt-2 px-1">
+                <div className="min-w-0 pr-4">
+                  <h3 className="text-sm font-bold text-white truncate">{selectedItem.name}</h3>
+                  <p className="text-xs text-white/60">Photo {safeImageIndex + 1} of {itemImages.length}</p>
+                </div>
+                <button 
+                  onClick={() => setShowImageLightbox(false)}
+                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white flex items-center justify-center transition-colors border border-white/10 shrink-0"
+                  aria-label="Close photo viewer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Main Fullscreen Photo with Chevron Controls & Tap zones */}
+              <div className="relative flex-1 flex items-center justify-center my-3 overflow-hidden">
+                <img 
+                  src={currentPhoto} 
+                  alt={selectedItem.name} 
+                  className="max-h-[70vh] max-w-full object-contain rounded-2xl shadow-2xl transition-all duration-300" 
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80';
+                  }}
+                />
+
+                {itemImages.length > 1 && (
+                  <>
+                    {/* Left Tap Zone */}
+                    <div 
+                      onClick={handleLightboxPrev}
+                      className="absolute left-0 top-0 bottom-0 w-1/3 cursor-pointer z-10"
+                      aria-label="Previous photo tap zone"
+                    />
+                    {/* Right Tap Zone */}
+                    <div 
+                      onClick={handleLightboxNext}
+                      className="absolute right-0 top-0 bottom-0 w-1/3 cursor-pointer z-10"
+                      aria-label="Next photo tap zone"
+                    />
+
+                    {/* Left Arrow Button */}
+                    <button
+                      onClick={handleLightboxPrev}
+                      className="absolute left-3 w-12 h-12 rounded-full bg-black/60 hover:bg-black/85 active:scale-90 text-white flex items-center justify-center border border-white/20 shadow-lg backdrop-blur-md z-20 transition-all"
+                      aria-label="Previous photo"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+
+                    {/* Right Arrow Button */}
+                    <button
+                      onClick={handleLightboxNext}
+                      className="absolute right-3 w-12 h-12 rounded-full bg-black/60 hover:bg-black/85 active:scale-90 text-white flex items-center justify-center border border-white/20 shadow-lg backdrop-blur-md z-20 transition-all"
+                      aria-label="Next photo"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Lightbox Bottom Thumbnails Strip */}
+              {itemImages.length > 1 && (
+                <div className="safe-bottom pb-2">
+                  <div className="flex gap-2.5 justify-center overflow-x-auto no-scrollbar py-2 px-1">
+                    {itemImages.map((imgUrl, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveImageIndex(idx)}
+                        className={`relative w-14 h-14 rounded-xl overflow-hidden shrink-0 transition-all ${
+                          idx === safeImageIndex 
+                            ? 'ring-2 ring-brand-500 scale-105 shadow-lg border border-transparent' 
+                            : 'opacity-50 hover:opacity-100 border border-white/20'
+                        }`}
+                      >
+                        <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                        <span className="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-[8px] font-bold px-1 rounded">
+                          {idx + 1}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
@@ -2267,12 +2831,7 @@ function PopularItemCard({ item, onPress }) {
 
 function CardThumbnail({ item }) {
   const [hasError, setHasError] = useState(false);
-  const images = (item.photos && item.photos.length > 0)
-    ? item.photos 
-    : (item.images && item.images.length > 0)
-    ? item.images
-    : (item.coverImage ? [item.coverImage] : []);
-  
+  const images = getItemImages(item);
   const initialUrl = images[0];
 
   const getCategoryTheme = (cat) => {

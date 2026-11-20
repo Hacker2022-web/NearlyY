@@ -23,6 +23,11 @@ export const CATEGORY_DATA = {
       isOpen: true,
       timeLeft: '12 min left',
       coverImage: 'https://images.unsplash.com/photo-1613292443284-8d10ef9383fe?w=800&auto=format&fit=crop&q=80',
+      photos: [
+        'https://images.unsplash.com/photo-1613292443284-8d10ef9383fe?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=800&auto=format&fit=crop&q=80'
+      ],
       description: 'Clean, hygienic, homestyle daily meals for students, interns & IT professionals in Lohegaon.',
       phone: '919876543210',
       dietType: 'Pure Veg',
@@ -97,6 +102,11 @@ export const CATEGORY_DATA = {
       gallery: [
         'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&auto=format&fit=crop&q=80',
         'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&auto=format&fit=crop&q=80',
+      ],
+      photos: [
+        'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=800&auto=format&fit=crop&q=80'
       ]
     },
     {
@@ -140,6 +150,11 @@ export const CATEGORY_DATA = {
       },
       gallery: [
         'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=500&auto=format&fit=crop&q=80',
+      ],
+      photos: [
+        'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80'
       ]
     }
   ],
@@ -175,7 +190,12 @@ export const CATEGORY_DATA = {
         available: true,
         timing: 'Daily: 9:00 AM – 7:00 PM',
         note: 'Free doorstep pickup across Lohegaon'
-      }
+      },
+      photos: [
+        'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1521656693074-0ef32e80a5d5?w=800&auto=format&fit=crop&q=80'
+      ]
     },
     {
       id: 'laundry-2',
@@ -206,7 +226,12 @@ export const CATEGORY_DATA = {
         available: true,
         timing: 'Daily: 10:00 AM – 8:00 PM',
         note: 'Minimum pickup weight: 3 kg'
-      }
+      },
+      photos: [
+        'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=800&auto=format&fit=crop&q=80'
+      ]
     },
     {
       id: 'laundry-3',
@@ -236,7 +261,12 @@ export const CATEGORY_DATA = {
         available: false,
         timing: 'Drop-off at counter: 8 AM - 9 PM',
         note: 'Walk-in express counter'
-      }
+      },
+      photos: [
+        'https://images.unsplash.com/photo-1521656693074-0ef32e80a5d5?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=800&auto=format&fit=crop&q=80'
+      ]
     }
   ],
 
@@ -252,6 +282,11 @@ export const CATEGORY_DATA = {
       priceDisplay: '₹999 / mo',
       startingPrice: 999,
       coverImage: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&auto=format&fit=crop&q=80',
+      photos: [
+        'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&auto=format&fit=crop&q=80'
+      ],
       description: 'Fully air-conditioned 3,500 sq ft fitness floor with certified trainers and personal diet guidance.',
       phone: '919876543212',
       tags: ['Air Conditioned', 'Cardio + Strength', 'Certified Trainer'],
@@ -283,6 +318,11 @@ export const CATEGORY_DATA = {
       priceDisplay: '₹850 / mo',
       startingPrice: 850,
       coverImage: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&auto=format&fit=crop&q=80',
+      photos: [
+        'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&auto=format&fit=crop&q=80'
+      ],
       description: 'Heavy strength equipment, Olympic barbells, crossfit turf and dedicated weight-loss batches.',
       phone: '919876543224',
       tags: ['Crossfit Turf', 'Strength Gym', 'Open Early'],
@@ -314,6 +354,11 @@ export const CATEGORY_DATA = {
       priceDisplay: '₹1,299 / mo',
       startingPrice: 1299,
       coverImage: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&auto=format&fit=crop&q=80',
+      photos: [
+        'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&auto=format&fit=crop&q=80'
+      ],
       description: 'Biometric 24/7 gym access, imported cardio treadmills, sauna and certified Zumba/Yoga classes.',
       phone: '919876543225',
       tags: ['24/7 Open', 'Sauna & Steam', 'Zumba Classes'],
@@ -406,6 +451,8 @@ export const CATEGORY_DATA = {
       ],
       photos: [
         'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&auto=format&fit=crop&q=80'
       ]
     },
     {
@@ -439,6 +486,8 @@ export const CATEGORY_DATA = {
       ],
       photos: [
         'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop&q=80'
       ]
     },
     {
@@ -470,6 +519,8 @@ export const CATEGORY_DATA = {
       ],
       photos: [
         'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&auto=format&fit=crop&q=80'
       ]
     }
   ],
@@ -495,6 +546,11 @@ export const CATEGORY_DATA = {
       isOpen: true,
       timeLeft: 'Sunday Sundowner • Limited Student Passes',
       coverImage: '/ex-ki-shaadi.jpg',
+      photos: [
+        '/ex-ki-shaadi.jpg',
+        'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&auto=format&fit=crop&q=80'
+      ],
       description: 'CLOSURE LOOKS BETTER ON THE DANCE FLOOR!\n\nCurated by House of Desi & India\'s #1 Sundowner Kiki, in official collaboration with UV Events & Entertainment.\n\nFeaturing DJ Naaïro & DJ Nyx bringing non-stop high-energy Bollywood, Punjabi, and commercial club anthems.\n\n• Dress Code: (SHAADI FITS ONLY) — Kurta, Sherwani, Lehenga, Wedding Drip!\n• Mandatory: DigiLocker & Communication for 21+ required at entry.',
       tags: ['Shaadi Fits Only', 'Sunday Sundowner', 'DJ Naaïro', 'DJ Nyx', 'DigiLocker 21+', 'The Mills Pune', 'UV Events'],
       pricing: [
