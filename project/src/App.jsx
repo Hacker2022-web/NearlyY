@@ -12,7 +12,7 @@ import {
   Download, RefreshCw, AlertCircle, Maximize2
 } from 'lucide-react';
 import { 
-  LOCALITY, SERVICES_MENU, CATEGORY_DATA, USER_PROFILE 
+  LOCALITY, SERVICES_MENU, CATEGORY_DATA, USER_PROFILE, AVATAR_PRESETS 
 } from './data/mockData';
 import { 
   subscribeToServices, seedFirestore, syncUserProfile, 
@@ -317,7 +317,15 @@ export default function App() {
   const [userProfile, setUserProfile] = useState(() => {
     try {
       const saved = localStorage.getItem('nearlyy_user');
-      return saved ? JSON.parse(saved) : USER_PROFILE;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...USER_PROFILE,
+          ...parsed,
+          avatar: parsed.avatar || USER_PROFILE.avatar
+        };
+      }
+      return USER_PROFILE;
     } catch (e) {
       return USER_PROFILE;
     }
@@ -870,7 +878,8 @@ export default function App() {
     localStorage.setItem('nearlyy_onboarded', 'true');
     const toSave = {
       ...(profileOverride || userProfile),
-      onboarded: true
+      onboarded: true,
+      avatar: (profileOverride && profileOverride.avatar) || userProfile?.avatar || USER_PROFILE.avatar
     };
     setUserProfile(toSave);
     try {
@@ -1108,10 +1117,14 @@ export default function App() {
                   {/* Header */}
                   <div className="home-section flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center shrink-0">
-                        <img src="/logo.png" alt="NearlyY" className="w-6 h-6 object-contain" onError={e => e.target.style.display = 'none'} />
-                        <span className="text-brand-700 font-bold text-xl" style={{ display: 'none' }}>N</span>
-                      </div>
+                      <button 
+                        onClick={() => { setCurrentScreen('profile'); setActiveTab('profile'); }}
+                        className="relative group shrink-0 active:scale-95 transition-transform cursor-pointer"
+                        aria-label="View Profile"
+                      >
+                        <UserAvatar user={userProfile} size="md" className="ring-2 ring-brand-500/20" />
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />
+                      </button>
                       <div>
                         <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Lohegaon, Pune</p>
                         <p className="text-base font-semibold text-slate-900">Welcome back, {firstNameOf(userProfile.name)}</p>
@@ -1937,17 +1950,20 @@ export default function App() {
 
                   {/* Profile Card */}
                   <Card className="flex flex-col items-center text-center space-y-3">
-                    <div className="relative">
-                      <div className="w-24 h-24 rounded-2xl overflow-hidden bg-brand-100 flex items-center justify-center">
-                        {userProfile.avatar ? (
-                          <img src={userProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-brand-700 font-bold text-3xl">{String(userProfile.name || 'S').charAt(0)}</span>
-                        )}
-                      </div>
+                    <div className="relative group cursor-pointer" onClick={() => setShowEditProfileModal(true)}>
+                      <UserAvatar user={userProfile} size="xl" className="border-4 border-white shadow-lg ring-2 ring-brand-500/20" />
                       {userProfile.isVerified && (
-                        <span className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs shadow-md">✓</span>
+                        <span className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs shadow-md border-2 border-white">✓</span>
                       )}
+                      <button 
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setShowEditProfileModal(true); }}
+                        className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-white text-slate-700 hover:text-brand-600 shadow-md border border-slate-200 flex items-center justify-center transition-all active:scale-90"
+                        aria-label="Change profile photo"
+                        title="Change photo"
+                      >
+                        <Camera className="w-4 h-4" />
+                      </button>
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-slate-900">{userProfile.name || 'Student'}</h3>
@@ -2148,6 +2164,73 @@ export default function App() {
           title="Edit Profile"
         >
           <div className="space-y-4">
+            {/* Avatar Selector & Upload */}
+            <div className="flex flex-col items-center p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-3">
+              <div className="relative group">
+                <UserAvatar user={userProfile} size="lg" className="border-2 border-white shadow-md ring-2 ring-brand-500/30" />
+                <label 
+                  htmlFor="avatar-file-input" 
+                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-md cursor-pointer hover:bg-brand-700 active:scale-95 transition"
+                  title="Upload custom photo"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </label>
+                <input 
+                  id="avatar-file-input" 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) {
+                      showToast('Please select an image smaller than 5MB');
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      if (ev.target?.result) {
+                        setUserProfile(p => ({ ...p, avatar: ev.target.result }));
+                        showToast('Photo selected! Tap Save to apply.');
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </div>
+
+              {/* Avatar Preset Chips */}
+              <div className="w-full space-y-1.5 text-center">
+                <span className="text-[11px] font-semibold text-slate-500">Pick an avatar style or upload your own:</span>
+                <div className="flex items-center justify-center gap-2 py-1 overflow-x-auto no-scrollbar">
+                  {AVATAR_PRESETS.map((presetUrl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setUserProfile(p => ({ ...p, avatar: presetUrl }))}
+                      className={`relative w-8 h-8 rounded-full overflow-hidden shrink-0 transition-transform ${
+                        userProfile.avatar === presetUrl 
+                          ? 'ring-2 ring-brand-600 scale-110 shadow-xs' 
+                          : 'opacity-70 hover:opacity-100 border border-slate-200'
+                      }`}
+                    >
+                      <img src={presetUrl} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                  {userProfile.avatar && (
+                    <button
+                      type="button"
+                      onClick={() => setUserProfile(p => ({ ...p, avatar: '' }))}
+                      className="px-2 py-1 rounded-full text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition"
+                      title="Clear photo"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <Input 
               label="Full Name" 
               value={userProfile.name || ''} 
@@ -2504,13 +2587,7 @@ function OnboardingGoogleSignIn({ onGoogleSignIn, isLoading, onBack, onNext, use
         {isAlreadySignedIn ? (
           <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200/80 space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-white border border-emerald-200 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
-                {userProfile.avatar ? (
-                  <img src={userProfile.avatar} alt={userProfile.name} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-emerald-700 font-bold text-lg">{String(userProfile.name || 'S').charAt(0)}</span>
-                )}
-              </div>
+              <UserAvatar user={userProfile} size="md" className="border border-emerald-200 shadow-xs" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -2818,6 +2895,43 @@ function OnboardingBio({ bio, onChange, onFinish, onBack }) {
 // ============================================================
 // Dashboard Components
 // ============================================================
+
+function UserAvatar({ user, size = 'md', className = '', onClick }) {
+  const [imgError, setImgError] = useState(false);
+  const name = user?.name || 'Student';
+  const initial = (name.charAt(0) || 'S').toUpperCase();
+  const avatarUrl = !imgError ? (user?.avatar || user?.photoURL || user?.photoUrl) : null;
+
+  const sizeClasses = {
+    xs: 'w-7 h-7 text-[10px] rounded-lg',
+    sm: 'w-9 h-9 text-xs rounded-xl',
+    md: 'w-10 h-10 text-sm rounded-xl',
+    lg: 'w-16 h-16 text-xl rounded-2xl',
+    xl: 'w-24 h-24 text-3xl rounded-3xl'
+  }[size] || 'w-10 h-10 text-sm rounded-xl';
+
+  return (
+    <div 
+      onClick={onClick}
+      className={`relative overflow-hidden shrink-0 flex items-center justify-center font-bold select-none ${sizeClasses} ${
+        avatarUrl ? 'bg-slate-100' : 'bg-gradient-to-tr from-brand-600 to-indigo-500 text-white shadow-xs'
+      } ${className}`}
+    >
+      {avatarUrl ? (
+        <img 
+          src={avatarUrl} 
+          alt={name} 
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
+          className="w-full h-full object-cover"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <span>{initial}</span>
+      )}
+    </div>
+  );
+}
 
 function PopularItemCard({ item, onPress }) {
   const itemImages = item.images || (item.coverImage ? [item.coverImage] : []);

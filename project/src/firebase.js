@@ -246,9 +246,12 @@ export async function signInWithGoogle() {
     const existingCloudProfile = await fetchUserProfile(baseProfile.email);
     const isExisting = Boolean(existingCloudProfile && (existingCloudProfile.onboarded || existingCloudProfile.college));
 
+    const activeAvatar = user?.photoURL || user?.photoUrl || existingCloudProfile?.avatar || baseProfile.avatar || '';
+
     const finalProfile = {
       ...baseProfile,
-      ...(existingCloudProfile || {})
+      ...(existingCloudProfile || {}),
+      avatar: activeAvatar
     };
 
     await syncUserProfile(finalProfile);
@@ -278,16 +281,23 @@ export async function signInWithGoogle() {
 export function listenToAuthState(callback) {
   return onAuthStateChanged(auth, async (user) => {
     if (user) {
-      const profile = {
-        uid: user.uid,
-        name: user.displayName || 'Student',
-        email: user.email || '',
-        avatar: user.photoURL || '',
-        provider: 'google',
-        lastLogin: new Date().toISOString()
-      };
-      await syncUserProfile(profile);
-      callback(profile);
+      try {
+        const existing = await fetchUserProfile(user.email);
+        const activeAvatar = user.photoURL || existing?.avatar || '';
+        const profile = {
+          ...(existing || {}),
+          uid: user.uid,
+          name: user.displayName || existing?.name || 'Student',
+          email: user.email || '',
+          avatar: activeAvatar,
+          provider: 'google',
+          lastLogin: new Date().toISOString()
+        };
+        await syncUserProfile(profile);
+        callback(profile);
+      } catch (e) {
+        console.warn('listenToAuthState sync notice:', e);
+      }
     }
   });
 }
