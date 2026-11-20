@@ -24,7 +24,7 @@ import {
   isVersionNewer, downloadAndApplyBundle, reloadApp, notifyAppReady 
 } from './updater';
 
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.0.1';
 
 // Curated Lohegaon Campus & Living Slides for Front Page
 const HERO_SLIDES = [
@@ -359,6 +359,7 @@ export default function App() {
   const touchHeroRef = useRef(null);
 
   // App Update (OTA + APK) State
+  const [currentAppVersion, setCurrentAppVersion] = useState(APP_VERSION);
   const [appConfig, setAppConfig] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [isUpdatingOta, setIsUpdatingOta] = useState(false);
@@ -366,15 +367,39 @@ export default function App() {
   const [manualCheckLoading, setManualCheckLoading] = useState(false);
   const [manualCheckFeedback, setManualCheckFeedback] = useState(null);
 
+  // Sync native app version from Capacitor package manager if available
+  useEffect(() => {
+    import('@capacitor/app').then(({ App: CapApp }) => {
+      CapApp.getInfo().then(info => {
+        if (info && info.version) {
+          setCurrentAppVersion(info.version);
+        }
+      }).catch(() => {});
+    }).catch(() => {});
+  }, []);
+
   // Real-time app config & version listener (for both OTA live bundles and APK updates)
   useEffect(() => {
     notifyAppReady();
 
     const unsubConfig = subscribeToAppConfig((config) => {
       setAppConfig(config);
-      if (config && isVersionNewer(config.latestVersion, APP_VERSION)) {
-        setShowUpdateModal(true);
+      if (!config) return;
+
+      const isOutdated = isVersionNewer(config.latestVersion, currentAppVersion);
+      if (isOutdated) {
+        // Only display if not snoozed within 24h, or if forced update
+        const snoozedUntil = parseInt(localStorage.getItem('nearlyy_snooze_' + config.latestVersion) || '0', 10);
+        if (config.forceUpdate || Date.now() > snoozedUntil) {
+          setShowUpdateModal(true);
+        } else {
+          setShowUpdateModal(false);
+        }
+      } else {
+        // App is fully updated: MUST NOT display update modal!
+        setShowUpdateModal(false);
       }
+
       // Background Capgo Live Bundle download if available
       if (config?.bundleUrl && config?.bundleVersion) {
         downloadAndApplyBundle(config.bundleUrl, config.bundleVersion).then(res => {
@@ -385,7 +410,14 @@ export default function App() {
       }
     });
     return () => unsubConfig();
-  }, []);
+  }, [currentAppVersion]);
+
+  const handleSnoozeUpdate = () => {
+    if (appConfig?.latestVersion) {
+      localStorage.setItem('nearlyy_snooze_' + appConfig.latestVersion, String(Date.now() + 24 * 60 * 60 * 1000));
+    }
+    setShowUpdateModal(false);
+  };
 
   const handleTriggerAppUpdate = async () => {
     if (!appConfig) return;
@@ -425,11 +457,12 @@ export default function App() {
     try {
       const config = await fetchAppConfig();
       setAppConfig(config);
-      const isOutdated = isVersionNewer(config.latestVersion, APP_VERSION);
+      const isOutdated = isVersionNewer(config.latestVersion, currentAppVersion);
       if (isOutdated) {
         setShowUpdateModal(true);
         setManualCheckFeedback({ type: 'update', message: `v${config.latestVersion} available!` });
       } else {
+        setShowUpdateModal(false);
         setManualCheckFeedback({ type: 'success', message: 'You are on the latest version!' });
         setTimeout(() => setManualCheckFeedback(null), 3500);
       }
@@ -1989,26 +2022,34 @@ export default function App() {
                         <h3 className="text-base font-semibold text-slate-900">App Releases & OTA</h3>
                         <p className="text-xs text-slate-500">Live Over-The-Air & APK updates</p>
                       </div>
-                      <Badge variant="outline" className="text-[10px] bg-purple-50 text-brand-700 border-brand-200">
-                        v{APP_VERSION}
+                      <Badge variant="outline" className={`text-[10px] ${
+                        isVersionNewer(appConfig?.latestVersion, currentAppVersion)
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      }`}>
+                        v{currentAppVersion} {isVersionNewer(appConfig?.latestVersion, currentAppVersion) ? '• Update Available' : '• Up to Date ✓'}
                       </Badge>
                     </div>
 
                     <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-brand-600 shrink-0">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
+                          isVersionNewer(appConfig?.latestVersion, currentAppVersion)
+                            ? 'bg-amber-50 border-amber-200 text-amber-600'
+                            : 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                        }`}>
                           <Sparkles className="w-4 h-4" />
                         </div>
                         <div className="truncate">
                           <p className="text-xs font-bold text-slate-900 truncate">
-                            {isVersionNewer(appConfig?.latestVersion, APP_VERSION) 
+                            {isVersionNewer(appConfig?.latestVersion, currentAppVersion) 
                               ? `New Release: v${appConfig.latestVersion}` 
                               : `NearlyY is Up to Date`}
                           </p>
                           <p className="text-[11px] text-slate-500 truncate">
-                            {isVersionNewer(appConfig?.latestVersion, APP_VERSION)
+                            {isVersionNewer(appConfig?.latestVersion, currentAppVersion)
                               ? 'Tap update to install latest build'
-                              : 'Background OTA engine running'}
+                              : 'You are on the latest version'}
                           </p>
                         </div>
                       </div>
@@ -2023,7 +2064,7 @@ export default function App() {
                         ) : (
                           <Download className="w-3.5 h-3.5" />
                         )}
-                        <span>{manualCheckLoading ? 'Checking...' : isVersionNewer(appConfig?.latestVersion, APP_VERSION) ? 'Update' : 'Check'}</span>
+                        <span>{manualCheckLoading ? 'Checking...' : isVersionNewer(appConfig?.latestVersion, currentAppVersion) ? 'Update' : 'Check'}</span>
                       </button>
                     </div>
 
@@ -2043,7 +2084,7 @@ export default function App() {
                     <div className="space-y-2">
                       <SettingsRow icon={Shield} title="Privacy & Security" subtitle="Manage your data" onPress={() => {}} />
                       <SettingsRow icon={HelpCircle} title="Help & Support" subtitle="FAQs, contact us" onPress={() => {}} />
-                      <SettingsRow icon={Info} title="About NearlyY" subtitle={`Version ${APP_VERSION} (Lohegaon Edition)`} onPress={handleManualCheckUpdates} />
+                      <SettingsRow icon={Info} title="About NearlyY" subtitle={`Version ${currentAppVersion} (Lohegaon Edition)`} onPress={handleManualCheckUpdates} />
                       <SettingsRow icon={LogOut} title="Sign Out" subtitle="Log out of your account" variant="danger" onPress={resetOnboarding} />
                     </div>
                   </Card>
@@ -2213,7 +2254,7 @@ export default function App() {
 
             <h3 className="text-xl font-extrabold text-slate-900">New NearlyY Release Ready</h3>
             <p className="text-xs text-slate-500 mt-1 max-w-xs">
-              A newer, faster version of NearlyY is available. Installed version: <span className="font-semibold text-slate-700">v{APP_VERSION}</span>
+              A newer, faster version of NearlyY is available. Installed version: <span className="font-semibold text-slate-700">v{currentAppVersion}</span>
             </p>
 
             {/* What's New Box */}
@@ -2248,7 +2289,7 @@ export default function App() {
 
               {!appConfig?.forceUpdate && (
                 <button 
-                  onClick={() => setShowUpdateModal(false)}
+                  onClick={handleSnoozeUpdate}
                   className="w-full py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors"
                 >
                   Remind Me Later
